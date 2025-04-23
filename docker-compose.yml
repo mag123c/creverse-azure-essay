@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres
+    container_name: creverse_postgres
+    ports:
+      - '${POSTGRES_PORT:-54333}:5432'
+    environment:
+      POSTGRES_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DATABASE: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgres
+    networks:
+      - creverse-net
+
+  app:
+    build:
+      context: .
+    container_name: creverse_app
+    ports:
+      - '11223:11223'
+    env_file:
+      - .env.dev
+    depends_on:
+      - db
+    networks:
+      - creverse-net
+
+volumes:
+  dbdata:
+
+networks:
+  creverse-net:
