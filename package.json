@@ -9,8 +9,8 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "cross-env NODE_ENV=dev && nest start --watch",
-    "start:local": "cross-env NODE_ENV=local && nest start --watch",
+    "start:dev": "cross-env NODE_ENV=dev nest start --watch",
+    "start:local": "cross-env NODE_ENV=local nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint --ext .ts ./src ./test",
@@ -23,6 +23,8 @@
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --dataSource ./src/infra/database/config/migration.config.ts"
   },
   "dependencies": {
+    "@azure/identity": "^4.9.1",
+    "@azure/openai": "^2.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -36,6 +38,7 @@
     "class-validator": "^0.14.1",
     "compression": "^1.8.0",
     "nest-winston": "^1.10.2",
+    "openai": "^4.96.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.15.5",

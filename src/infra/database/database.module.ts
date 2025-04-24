@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { typeORMConfig } from '@src/config';
 import { DataSource } from 'typeorm';
 import { addTransactionalDataSource, deleteDataSourceByName, getDataSourceByName } from 'typeorm-transactional';
-import { typeORMConfig } from './config/typeorm.config';
 
 @Module({
   imports: [
