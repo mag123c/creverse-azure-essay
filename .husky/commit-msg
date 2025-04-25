@@ -1,0 +1,18 @@
+echo "🔍 커밋 메시지 검사를 시작합니다..."
+
+COMMIT_MESSAGE_FILE=$1
+
+if [ -z "$COMMIT_MESSAGE_FILE" ]; then
+  echo "❌ 커밋 메시지 파일이 제공되지 않았습니다."
+  exit 1
+fi
+
+COMMIT_MESSAGE=$(cat "$COMMIT_MESSAGE_FILE")
+echo "❤️‍🩹 Commit Message: $COMMIT_MESSAGE"
+
+if npx commitlint --edit "$COMMIT_MESSAGE_FILE"; then
+  echo "🔆 Commit message meets the convention 🔆"
+else
+  echo "❌ Commit message does not meet the convention ❌"
+  exit 1
+fi

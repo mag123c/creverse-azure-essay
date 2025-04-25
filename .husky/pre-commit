@@ -1,0 +1,18 @@
+#!/bin/bash
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+echo "🔍 Pre-commit Hook: Running lint checks..."
+if yarn lint-staged; then
+  echo "✅ Lint checks passed."
+else
+  echo "❌ Lint checks failed. Aborting commit."
+  exit 1
+fi
+
+if yarn test; then
+  echo "✅ Test checks passed."
+else
+  echo "❌ Test checks failed. Aborting commit."
+  exit 1
+fi
