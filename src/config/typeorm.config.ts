@@ -16,14 +16,16 @@ export const typeORMConfig = (configService: ConfigService) => {
     port: configService.get<number>('DATABASE_PORT'),
     username: configService.get('DATABASE_USERNAME'),
     password: configService.get('DATABASE_PASSWORD'),
+    database: configService.get('DATABASE_NAME'),
+    schema: configService.get('DATABASE_SCHEMA'),
     autoLoadEntities: true,
     synchronize: isLocal() || isTest(),
     dropSchema: isLocal() || isTest(),
-    logging: !isLocal() && !isTest(),
+    logging: isLocal(),
     namingStrategy: new SnakeNamingStrategy(),
     dateStrings: true,
     charset: 'utf8mb4',
     collation: 'utf8mb4_unicode_ci',
-    TZ: 'Asia/Seoul',
+    timezone: 'Asia/Seoul',
   } as TypeOrmModuleAsyncOptions;
 };

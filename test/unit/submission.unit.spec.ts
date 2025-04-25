@@ -7,7 +7,7 @@ describe('[unit] Submission', () => {
     const submitText = 'This is a test sentence. This is another test sentence.';
     const highlightPhrases = ['a test', 'another'];
 
-    const submission = Submission.of(1, 'John Doe', componentType, submitText);
+    const submission = Submission.create(1, 'John Doe', componentType, submitText);
 
     const evaluation = new Evaluation(9, 'Good job!', highlightPhrases);
     submission.applyEvaluation(evaluation);
@@ -20,7 +20,7 @@ describe('[unit] Submission', () => {
   it('하이라이트가 없는 경우 원본 텍스트를 그대로 반환한다', () => {
     const componentType = 'essay';
     const submitText = 'No highlights should be added here.';
-    const submission = Submission.of(1, 'Jane Doe', componentType, submitText);
+    const submission = Submission.create(1, 'Jane Doe', componentType, submitText);
     submission.applyEvaluation(new Evaluation(5, 'Needs improvement.', []));
 
     const result = submission.toDto().data;

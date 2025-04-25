@@ -10,13 +10,25 @@ import { RevisionsEntity } from './entities/revisions.entity';
 import { SubmissionMediaEntity } from './entities/submission-media.entity';
 import { SubmissionsRepository } from './repositories/submissions.repository';
 import { SubmissionLogsRepository } from './repositories/submission-logs.repository';
+import { SubmissionMediaUploader } from './uploader/submission-media-uploader';
+import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
+import { SubmissionMediaRepository } from './repositories/submission-media.repository';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([SubmissionsEntity, SubmissionLogsEntity, SubmissionMediaEntity, RevisionsEntity]),
     OpenAIModule,
+    BlobStorageModule,
   ],
-  providers: [SubmissionsService, SubmissionEvaluator, SubmissionsRepository, SubmissionLogsRepository],
+  providers: [
+    SubmissionsService,
+    SubmissionEvaluator,
+    SubmissionMediaUploader,
+
+    SubmissionsRepository,
+    SubmissionLogsRepository,
+    SubmissionMediaRepository,
+  ],
   exports: [],
   controllers: [SubmissionsController],
 })

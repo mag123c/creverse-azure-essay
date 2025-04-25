@@ -5,10 +5,10 @@ import { SubmissionLogsEntity } from './submission-logs.entity';
 import { Media } from '../domain/media';
 import { StudentsEntity } from '@src/app/students/entities/students.entity';
 
-@Entity('submissions', { database: 'creverse' })
 @Index('uq_submissions_student_component', ['student', 'componentType'], { unique: true })
 @Index('idx_submissions_status_created', ['status', 'createdDt'])
 @Index('idx_submissions_created', ['createdDt'])
+@Entity('submissions')
 export class SubmissionsEntity extends DefaultEntity {
   @Index('idx_submissions_student_id')
   @ManyToOne(() => StudentsEntity, (s) => s.submissions, { nullable: false, onDelete: 'CASCADE' })

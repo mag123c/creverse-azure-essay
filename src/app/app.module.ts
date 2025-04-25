@@ -6,6 +6,7 @@ import { CustomDatabaseModule } from '@src/infra/database/database.module';
 import { OpenAIModule } from '@src/infra/azure/openai/openai.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { StudentsModule } from './students/students.module';
+import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { StudentsModule } from './students/students.module';
 
     // Infra
     CustomDatabaseModule,
+    BlobStorageModule,
     OpenAIModule,
 
     // Domain

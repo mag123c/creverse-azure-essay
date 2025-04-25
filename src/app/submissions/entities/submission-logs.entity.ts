@@ -5,7 +5,7 @@ import { SubmissionsEntity } from './submissions.entity';
 
 export type SubmissionLogAction = 'INITIAL' | 'RETRY' | 'REVISION';
 
-@Entity('submission_logs', { database: 'creverse' })
+@Entity('submission_logs')
 export class SubmissionLogsEntity extends DefaultEntity {
   @Index('idx_submission_logs_submission_id')
   @ManyToOne(() => SubmissionsEntity, (sub) => sub.logs, { nullable: false, onDelete: 'CASCADE' })

@@ -13,6 +13,7 @@ export enum SubmissionStatus {
 
 export class Submission {
   constructor(
+    private readonly id: number | undefined,
     private readonly studentId: number,
     private readonly studentName: string,
     private readonly componentType: string,
@@ -26,6 +27,9 @@ export class Submission {
     private readonly traceId: string = generateTraceId(),
   ) {}
 
+  getId(): number | undefined {
+    return this.id;
+  }
   getStudentId(): number {
     return this.studentId;
   }
@@ -62,12 +66,17 @@ export class Submission {
   setErrorMessage(errorMessage: string): void {
     this.errorMessage = errorMessage;
   }
+  setLatency(latency: number) {
+    this.apiLatency = latency;
+  }
+  setMedia(media: Media): void {
+    this.media = media;
+  }
 
   applyEvaluation(evaluation: Evaluation): void {
     this.evaluation = evaluation;
     this.status = SubmissionStatus.SUCCESS;
     this.highlightSubmitText = this.generateHighlightSubmitText();
-    this.apiLatency = evaluation.apiLatency;
   }
 
   markAsEvaluating(): void {
@@ -91,12 +100,14 @@ export class Submission {
     });
   }
 
-  static of(studentId: number, studentName: string, componentType: string, submitText: string): Submission {
-    return new Submission(studentId, studentName, componentType, submitText);
+  /** 새 제출 생성용: PK 없음 */
+  static create(studentId: number, studentName: string, componentType: string, submitText: string): Submission {
+    return new Submission(undefined, studentId, studentName, componentType, submitText);
   }
 
   static ofEntity(entity: SubmissionsEntity): Submission {
     const submission = new Submission(
+      entity.id,
       entity.student.id,
       entity.student.name,
       entity.componentType,

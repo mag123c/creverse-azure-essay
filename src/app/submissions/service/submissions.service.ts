@@ -10,13 +10,18 @@ import { generateTraceId } from '@src/common/utils/crpyto';
 import { SubmissionsEntity } from '../entities/submissions.entity';
 import { SubmissionLogsRepository } from '../repositories/submission-logs.repository';
 import { SubmissionLogAction } from '../entities/submission-logs.entity';
+import { SubmissionMediaUploader } from '../uploader/submission-media-uploader';
+import { SubmissionMediaRepository } from '../repositories/submission-media.repository';
 
 @Injectable()
 export class SubmissionsService {
   constructor(
     private readonly evaluator: SubmissionEvaluator,
+    private readonly uploader: SubmissionMediaUploader,
+
     private readonly submissionsRepository: SubmissionsRepository,
     private readonly submissionLogsRepository: SubmissionLogsRepository,
+    private readonly submissionMediaRepository: SubmissionMediaRepository,
   ) {}
 
   /**
@@ -30,8 +35,10 @@ export class SubmissionsService {
    */
   async generateSubmissionFeedback(
     req: SubmissionsRequestDto,
-    _videoFile?: Express.Multer.File,
+    videoFile?: Express.Multer.File,
   ): Promise<SubmissionsResponseDto> {
+    const start = Date.now();
+
     // 1. 중복된 컴포넌트 타입의 제출이 있다면 예외처리
     if (await this.isDuplicateSubmission(req.studentId, req.componentType)) {
       throw new DuplicateSubmissionException(req.studentId, req.componentType);
@@ -42,17 +49,30 @@ export class SubmissionsService {
     const submission = Submission.ofEntity(savedSubmissionEntity);
 
     try {
-      // 3. 평가 요청
-      const evaluation = await this.evaluator.evaluate(submission);
-      submission.applyEvaluation(evaluation);
+      // 3. 영상 파일이 있는 경우, 영상 처리 및 업로드
+      // 4. 평가 요청
+      const [mediaResult, evalResult] = await Promise.allSettled([
+        this.uploader.upload(videoFile),
+        this.evaluator.evaluate(submission),
+      ]);
+
+      if (mediaResult.status === 'fulfilled' && mediaResult.value) {
+        submission.setMedia(mediaResult.value);
+      }
+      if (evalResult.status === 'fulfilled') {
+        submission.applyEvaluation(evalResult.value);
+      } else {
+        throw evalResult.reason;
+      }
 
       return submission.toDto();
     } catch (e: any) {
       submission.markAsFailed(e.message);
       throw e;
     } finally {
-      // 4. 평가 결과 저장
+      // 5. 평가 결과 저장
       if (submission) {
+        submission.setLatency(Date.now() - start);
         await this.saveSubmissionResult(submission, 'INITIAL');
       }
     }
@@ -64,7 +84,7 @@ export class SubmissionsService {
   @Transactional()
   async saveIntializeSubmission(req: SubmissionsRequestDto): Promise<SubmissionsEntity> {
     const submissionEntity = this.submissionsRepository.create({
-      student: { id: req.studentId, name: req.studentName },
+      student: { id: req.studentId },
       componentType: req.componentType,
       submitText: req.submitText,
       highlightSubmitText: '',
@@ -74,8 +94,11 @@ export class SubmissionsService {
       traceId: generateTraceId(),
     });
 
+    // 최초 제출 저장
+    const savedSubmissionEntity = await this.submissionsRepository.save(submissionEntity);
+
     const submissionLogEntity = this.submissionLogsRepository.create({
-      submission: submissionEntity,
+      submission: savedSubmissionEntity,
       action: 'INITIAL',
       status: SubmissionStatus.EVALUATING,
       traceId: generateTraceId(),
@@ -85,8 +108,7 @@ export class SubmissionsService {
     // 최초 제출 로그 저장
     await this.submissionLogsRepository.save(submissionLogEntity);
     submissionEntity.logs = [submissionLogEntity];
-    // 최초 제출 저장
-    return await this.submissionsRepository.save(submissionEntity);
+    return savedSubmissionEntity;
   }
 
   /**
@@ -95,6 +117,7 @@ export class SubmissionsService {
   @Transactional()
   async saveSubmissionResult(submission: Submission, action: SubmissionLogAction): Promise<void> {
     const submissionEntity = this.submissionsRepository.create({
+      id: submission.getId(),
       student: { id: submission.getStudentId(), name: submission.getStudentName() },
       componentType: submission.getComponentType(),
       submitText: submission.getSubmitText(),
@@ -119,6 +142,16 @@ export class SubmissionsService {
 
     await this.submissionsRepository.save(submissionEntity);
     await this.submissionLogsRepository.save(submissionLogEntity);
+
+    if (submission.getMedia()) {
+      const mediaEntity = this.submissionMediaRepository.create({
+        submission: submissionEntity,
+        videoUrl: submission.getMedia()?.getVideoUrl(),
+        audioUrl: submission.getMedia()?.getAudioUrl(),
+        meta: submission.getMedia()?.getMeta(),
+      });
+      await this.submissionMediaRepository.save(mediaEntity);
+    }
   }
 
   /**

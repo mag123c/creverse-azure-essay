@@ -1,8 +1,9 @@
 import { DefaultEntity } from '@src/common/abstract/default.entity';
-import { ManyToOne, JoinColumn, Column, Index } from 'typeorm';
+import { ManyToOne, JoinColumn, Column, Index, Entity } from 'typeorm';
 import { SubmissionStatus } from '../domain/submission';
 import { SubmissionsEntity } from './submissions.entity';
 
+@Entity('revisions')
 export class RevisionsEntity extends DefaultEntity {
   @Index('idx_revisions_submission', ['submission'])
   @ManyToOne(() => SubmissionsEntity, { nullable: false, onDelete: 'CASCADE' })

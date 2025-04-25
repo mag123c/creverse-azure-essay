@@ -18,6 +18,6 @@ export class SubmissionEvaluator {
     const latency = Date.now() - start;
     this.logger.log(`학생 ${submission.getStudentId()} 평가 완료 (${latency}ms)`);
 
-    return new Evaluation(result.score, result.feedback, result.highlights, latency);
+    return new Evaluation(result.score, result.feedback, result.highlights);
   }
 }

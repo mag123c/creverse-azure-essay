@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AzureOpenAI } from 'openai';
 import { buildSubmissionFeedbackPrompt } from '../prompts/submission-feedback.prompt';
 import { OpenAIApiException } from '../exception/openai.exception';
@@ -6,10 +6,10 @@ import { Evaluation } from '@src/app/submissions/domain/evaluation';
 
 @Injectable()
 export class OpenAIService {
-  constructor(
-    @Inject(AzureOpenAI)
-    private readonly client: AzureOpenAI,
-  ) {}
+  private readonly model!: string;
+  constructor(private readonly client: AzureOpenAI) {
+    this.model = this.client.deploymentName!;
+  }
 
   /**
    * @external
@@ -23,7 +23,7 @@ export class OpenAIService {
     try {
       const response = await this.client.chat.completions.create({
         messages,
-        model: this.client.deploymentName!,
+        model: this.model,
         temperature: 0.7,
         max_tokens: 1024,
       });
