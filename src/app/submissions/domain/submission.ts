@@ -1,8 +1,8 @@
 import { generateTraceId } from '@src/common/utils/crpyto';
 import { SubmissionsResponseDto } from '../dto/submissions-response.dto';
-import type { SubmissionsEntity } from '../entities/submissions.entity';
 import type { Evaluation } from './evaluation';
 import type { Media } from './media';
+import type { SubmissionsEntity } from '../entities/submissions.entity';
 
 export enum SubmissionStatus {
   PENDING = 'PENDING',
@@ -123,7 +123,9 @@ export class Submission {
   private generateHighlightSubmitText(): string {
     if (!this.evaluation) return this.submitText;
 
-    const sortedHighlights = [...this.evaluation.highlights].sort((a, b) => b.length - a.length);
+    const highlights = this.evaluation.highlights.filter((h): h is string => typeof h === 'string');
+
+    const sortedHighlights = [...highlights].sort((a, b) => b.length - a.length);
     let result = this.submitText;
 
     for (const highlight of sortedHighlights) {

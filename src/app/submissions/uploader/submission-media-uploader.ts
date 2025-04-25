@@ -15,7 +15,6 @@ export class SubmissionMediaUploader {
 
   async upload(videoFile?: Express.Multer.File): Promise<Media | null> {
     if (!videoFile) {
-      this.logger.warn('영상 파일이 없습니다.');
       return null;
     }
 

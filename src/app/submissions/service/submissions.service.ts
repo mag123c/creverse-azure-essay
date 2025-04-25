@@ -12,6 +12,7 @@ import { SubmissionLogsRepository } from '../repositories/submission-logs.reposi
 import { SubmissionLogAction } from '../entities/submission-logs.entity';
 import { SubmissionMediaUploader } from '../uploader/submission-media-uploader';
 import { SubmissionMediaRepository } from '../repositories/submission-media.repository';
+import { Student } from '@src/app/students/domain/student';
 
 @Injectable()
 export class SubmissionsService {
@@ -34,18 +35,19 @@ export class SubmissionsService {
    *
    */
   async generateSubmissionFeedback(
+    student: Student,
     req: SubmissionsRequestDto,
     videoFile?: Express.Multer.File,
   ): Promise<SubmissionsResponseDto> {
     const start = Date.now();
 
     // 1. 중복된 컴포넌트 타입의 제출이 있다면 예외처리
-    if (await this.isDuplicateSubmission(req.studentId, req.componentType)) {
-      throw new DuplicateSubmissionException(req.studentId, req.componentType);
+    if (await this.isDuplicateSubmission(student.id, req.componentType)) {
+      throw new DuplicateSubmissionException(student.id, req.componentType);
     }
 
     // 2. 중복된 컴포넌트 타입의 제출이 없다면, 평가 요청 저장
-    const savedSubmissionEntity = await this.saveIntializeSubmission(req);
+    const savedSubmissionEntity = await this.saveIntializeSubmission(student, req);
     const submission = Submission.ofEntity(savedSubmissionEntity);
 
     try {
@@ -82,9 +84,9 @@ export class SubmissionsService {
    * 평가 요청 시 평가와 로그 최초 생성
    */
   @Transactional()
-  async saveIntializeSubmission(req: SubmissionsRequestDto): Promise<SubmissionsEntity> {
+  async saveIntializeSubmission(student: Student, req: SubmissionsRequestDto): Promise<SubmissionsEntity> {
     const submissionEntity = this.submissionsRepository.create({
-      student: { id: req.studentId },
+      student: { id: student.id, name: student.name },
       componentType: req.componentType,
       submitText: req.submitText,
       highlightSubmitText: '',

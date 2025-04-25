@@ -1,14 +1,17 @@
-import { Body, Controller, Post, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SubmissionsService } from './service/submissions.service';
 import { SubmissionsRequestDto, SubmissionsRequestWithFile } from './dto/submissions-request.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SubmissionsResponseDto } from './dto/submissions-response.dto';
-import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UploadedVideo } from '@src/common/pipe/file-validation.pipe';
 import { diskStorage } from 'multer';
+import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
+import { JwtDecoded } from '@src/common/decorator/jwt.decorator';
+import { Student } from '../students/domain/student';
 
-// @ApiBearerAuth('access-token')
-// @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('accessToken')
+@UseGuards(JwtAuthGuard)
 @ApiTags('submissions')
 @Controller('v1/submissions')
 export class SubmissionsController {
@@ -38,9 +41,10 @@ export class SubmissionsController {
   )
   @Post()
   async generateSubmissionFeedback(
+    @JwtDecoded() student: Student,
     @Body() req: SubmissionsRequestDto,
     @UploadedVideo() videoFile?: Express.Multer.File,
   ): Promise<SubmissionsResponseDto> {
-    return await this.submissionsService.generateSubmissionFeedback(req, videoFile);
+    return await this.submissionsService.generateSubmissionFeedback(student, req, videoFile);
   }
 }
