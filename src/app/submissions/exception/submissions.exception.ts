@@ -1,4 +1,4 @@
-import { BaseException } from '../../common/exceptions/base.exception';
+import { BaseException } from '../../../common/exceptions/base.exception';
 
 export class InvalidComponentTypeException extends BaseException {
   constructor(componentType: string) {

@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { isProduction, isTest } from '@src/common/utils/env';
+import { isDevelopment, isTest } from '@src/common/utils/env';
 
 export const setupPipe = (app: INestApplication) => {
   app.useGlobalPipes(
@@ -11,14 +11,14 @@ export const setupPipe = (app: INestApplication) => {
         enableImplicitConversion: true,
       },
       forbidNonWhitelisted: true,
-      disableErrorMessages: isProduction(),
+      disableErrorMessages: isDevelopment(),
       skipMissingProperties: false,
       exceptionFactory: (errors) => {
-        if (!isProduction() && !isTest()) {
+        if (!isDevelopment() && !isTest()) {
           console.error(errors);
         }
         return new BadRequestException(
-          isProduction()
+          isDevelopment()
             ? 'Invalid request parameters'
             : errors.map((err) => ({
                 property: err.property,

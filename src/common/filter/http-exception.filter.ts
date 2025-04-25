@@ -23,7 +23,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message: message,
     };
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'dev') {
       json['path'] = request.url;
       json['stack'] = exception.stack;
       json['body'] = request.body;
