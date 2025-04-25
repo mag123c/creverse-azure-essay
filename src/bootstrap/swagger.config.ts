@@ -4,16 +4,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export const swaggerConfig = () => {
   return new DocumentBuilder()
-    .setTitle('프리랜서 API')
-    .setVersion('SETVERSION')
-    .addBasicAuth(
+    .setTitle('API Docs')
+    .setDescription('API Docs')
+    .addBearerAuth(
       {
-        type: 'apiKey',
-        scheme: 'X-Nonce',
-        name: 'X-Nonce',
+        type: 'http',
+        scheme: 'bearer',
+        name: 'JWT',
         in: 'header',
       },
-      'X-Nonce',
+      'accessToken',
     )
     .build();
 };

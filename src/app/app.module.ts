@@ -7,6 +7,7 @@ import { OpenAIModule } from '@src/infra/azure/openai/openai.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { StudentsModule } from './students/students.module';
 import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
     OpenAIModule,
 
     // Domain
+    AuthModule,
     SubmissionsModule,
     StudentsModule,
   ],

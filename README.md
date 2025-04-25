@@ -29,3 +29,7 @@ docker-compose up --build
 - action / status를 분리, action은 로그 row가 어떤 요청인지 (최초, 1회 재시도 배치, 수동), status는 성공 / 실패 여부등 진행 결과를 저장함.
   - 예를 들어, 최초 평가 요청 시 INITIALIZE: PENDING이며, 평가 실패 성공에 따라 status만 바뀜.
   - 배치 처리, 혹은 수동 재시도 시 action: {action}으로 status: FAIL인 것만 분기처리
+
+3. 유저 인가
+
+- 요구 사항에 맞게, 최소화한 students 테이블에는 유저의 이름만 들어있으며 JWT 생성을 위해 이름만 넣으면 회원가입 및 Access Token을 반환하는 API가 구현되어 있음.

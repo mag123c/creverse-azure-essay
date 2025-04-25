@@ -61,7 +61,6 @@ export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsRespon
   }
 
   static of(data: SubmissionsResponse): SubmissionsResponseDto {
-    const dto = new SubmissionsResponseDto(data);
-    return dto;
+    return new SubmissionsResponseDto(data);
   }
 }
