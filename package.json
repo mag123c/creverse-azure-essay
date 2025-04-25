@@ -101,7 +101,7 @@
     ],
     "moduleNameMapper": {
       "^@src/(.*)$": "<rootDir>/src/$1",
-      "^@settings/(.*)$": "<rootDir>/test/settings/$1"
+      "^test/(.*)$": "<rootDir>/test/$1"
     },
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
@@ -113,6 +113,7 @@
       "!src/app/**/*.module.ts",
       "src/infra/**/*.ts",
       "!src/infra/**/*.module.ts",
+      "!src/infra/database/**/*.ts",
       "!src/**/*.entity.ts"
     ],
     "coverageDirectory": "../coverage",
