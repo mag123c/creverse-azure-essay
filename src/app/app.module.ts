@@ -5,6 +5,7 @@ import { envConfig } from '@src/config';
 import { CustomDatabaseModule } from '@src/infra/database/database.module';
 import { OpenAIModule } from '@src/infra/azure/openai/openai.module';
 import { SubmissionsModule } from './submissions/submissions.module';
+import { StudentsModule } from './students/students.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
 
     // Domain
     SubmissionsModule,
+    StudentsModule,
   ],
 })
 export class AppModule {}

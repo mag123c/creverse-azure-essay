@@ -13,7 +13,7 @@ export class SubmissionNotFoundException extends BaseException {
 }
 
 export class DuplicateSubmissionException extends BaseException {
-  constructor(componentType: string) {
-    super(409, `중복된 제출이 감지되었습니다: ${componentType}`, { componentType });
+  constructor(userId: number, componentType: string) {
+    super(409, `중복된 제출이 감지되었습니다`, { userId, componentType });
   }
 }

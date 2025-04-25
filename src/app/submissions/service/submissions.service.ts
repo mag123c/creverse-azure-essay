@@ -1,12 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { SubmissionsRequestDto } from '../dto/submissions-request.dto';
-import { Submission } from '../domain/submission';
+import { Submission, SubmissionStatus } from '../domain/submission';
 import { SubmissionEvaluator } from './submissions.evaluator';
 import { SubmissionsResponseDto } from '../dto/submissions-response.dto';
+import { Transactional } from 'typeorm-transactional';
+import { SubmissionsRepository } from '../repositories/submissions.repository';
+import { DuplicateSubmissionException } from '../exception/submissions.exception';
+import { generateTraceId } from '@src/common/utils/crpyto';
+import { SubmissionsEntity } from '../entities/submissions.entity';
+import { SubmissionLogsRepository } from '../repositories/submission-logs.repository';
+import { SubmissionLogAction } from '../entities/submission-logs.entity';
 
 @Injectable()
 export class SubmissionsService {
-  constructor(private readonly evaluator: SubmissionEvaluator) {}
+  constructor(
+    private readonly evaluator: SubmissionEvaluator,
+    private readonly submissionsRepository: SubmissionsRepository,
+    private readonly submissionLogsRepository: SubmissionLogsRepository,
+  ) {}
 
   /**
    * @API POST /v1/submissions - 학생 에세이 제출 (AI 평가 요청)
@@ -21,17 +32,100 @@ export class SubmissionsService {
     req: SubmissionsRequestDto,
     _videoFile?: Express.Multer.File,
   ): Promise<SubmissionsResponseDto> {
-    const submission = Submission.of(req.studentId, req.studentName, req.submitText);
+    // 1. 중복된 컴포넌트 타입의 제출이 있다면 예외처리
+    if (await this.isDuplicateSubmission(req.studentId, req.componentType)) {
+      throw new DuplicateSubmissionException(req.studentId, req.componentType);
+    }
 
-    submission.markAsEvaluating();
+    // 2. 중복된 컴포넌트 타입의 제출이 없다면, 평가 요청 저장
+    const savedSubmissionEntity = await this.saveIntializeSubmission(req);
+    const submission = Submission.ofEntity(savedSubmissionEntity);
 
     try {
+      // 3. 평가 요청
       const evaluation = await this.evaluator.evaluate(submission);
       submission.applyEvaluation(evaluation);
+
       return submission.toDto();
-    } catch (e) {
-      submission.markAsFailed();
+    } catch (e: any) {
+      submission.markAsFailed(e.message);
       throw e;
+    } finally {
+      // 4. 평가 결과 저장
+      if (submission) {
+        await this.saveSubmissionResult(submission, 'INITIAL');
+      }
     }
+  }
+
+  /**
+   * 평가 요청 시 평가와 로그 최초 생성
+   */
+  @Transactional()
+  async saveIntializeSubmission(req: SubmissionsRequestDto): Promise<SubmissionsEntity> {
+    const submissionEntity = this.submissionsRepository.create({
+      student: { id: req.studentId, name: req.studentName },
+      componentType: req.componentType,
+      submitText: req.submitText,
+      highlightSubmitText: '',
+      feedback: '',
+      highlights: [],
+      status: SubmissionStatus.EVALUATING,
+      traceId: generateTraceId(),
+    });
+
+    const submissionLogEntity = this.submissionLogsRepository.create({
+      submission: submissionEntity,
+      action: 'INITIAL',
+      status: SubmissionStatus.EVALUATING,
+      traceId: generateTraceId(),
+      payload: { request: req },
+    });
+
+    // 최초 제출 로그 저장
+    await this.submissionLogsRepository.save(submissionLogEntity);
+    submissionEntity.logs = [submissionLogEntity];
+    // 최초 제출 저장
+    return await this.submissionsRepository.save(submissionEntity);
+  }
+
+  /**
+   * 평가 결과 저장.
+   */
+  @Transactional()
+  async saveSubmissionResult(submission: Submission, action: SubmissionLogAction): Promise<void> {
+    const submissionEntity = this.submissionsRepository.create({
+      student: { id: submission.getStudentId(), name: submission.getStudentName() },
+      componentType: submission.getComponentType(),
+      submitText: submission.getSubmitText(),
+      highlightSubmitText: submission.getHighlightSubmitText(),
+      score: submission.getEvaluation()?.score,
+      feedback: submission.getEvaluation()?.feedback,
+      highlights: submission.getEvaluation()?.highlights,
+      mediaUrl: submission.getMedia(),
+      status: submission.getStatus(),
+      apiLatency: submission.getApiLatency(),
+      traceId: submission.getTraceId(),
+    });
+
+    const submissionLogEntity = this.submissionLogsRepository.create({
+      submission: submissionEntity,
+      action,
+      status: submission.getStatus(),
+      apiLatency: submission.getApiLatency(),
+      traceId: submission.getTraceId(),
+      payload: { response: submission.toDto() },
+    });
+
+    await this.submissionsRepository.save(submissionEntity);
+    await this.submissionLogsRepository.save(submissionLogEntity);
+  }
+
+  /**
+   * @internal 중복된 제출이 있는지
+   */
+  private async isDuplicateSubmission(studentId: number, componentType: string): Promise<boolean> {
+    const submission = await this.submissionsRepository.findDuplicateSubmission(studentId, componentType);
+    return submission !== null;
   }
 }
