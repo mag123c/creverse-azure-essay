@@ -12,9 +12,8 @@ export class OpenAIService {
   }
 
   /**
-   * @external
-   *  OpenAI API를 사용하여 학생의 에세이를 평가합니다.
-   *   - 평가 결과는 JSON 형식으로 반환됩니다.
+   * OpenAI API를 사용하여 학생의 에세이를 평가합니다.
+   *  - 평가 결과는 JSON 형식으로 반환됩니다.
    */
   async evaluate(submitText: string): Promise<Evaluation> {
     // 평가를 위한 프롬프트 생성

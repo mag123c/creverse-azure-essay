@@ -157,7 +157,7 @@ export class SubmissionsService {
   }
 
   /**
-   * @internal 중복된 제출이 있는지
+   * 중복된 제출이 있는지
    */
   private async isDuplicateSubmission(studentId: number, componentType: string): Promise<boolean> {
     const submission = await this.submissionsRepository.findDuplicateSubmission(studentId, componentType);

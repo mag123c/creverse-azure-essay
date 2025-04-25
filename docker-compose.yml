@@ -20,8 +20,6 @@ services:
     container_name: creverse_app
     ports:
       - '11223:11223'
-    env_file:
-      - .env.dev
     depends_on:
       - db
     networks:
