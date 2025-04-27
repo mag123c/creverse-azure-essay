@@ -16,16 +16,22 @@ class SubmissionsResponse {
   @ApiProperty({ description: '학생 이름', example: '홍길동' })
   readonly studentName!: string;
 
-  @ApiProperty({ description: '점수(0 ~ 10)', example: 8 })
-  readonly score!: number;
+  @ApiPropertyOptional({
+    description: '평가 시 보냈던 텍스트',
+    example: 'Hello, this is a test video. I hope you enjoy it.',
+  })
+  readonly submitText!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({ description: '점수(0 ~ 10)', example: 8 })
+  readonly score?: number;
+
+  @ApiPropertyOptional({
     description: 'AI 피드백',
     example: 'Great organization, minor grammar issues. Consider revising the conclusion.',
   })
-  readonly feedback!: string;
+  readonly feedback?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'AI 피드백 하이라이트',
     example: [
       'Excellent introduction and thesis statement.',
@@ -33,19 +39,13 @@ class SubmissionsResponse {
       'Good use of transition words.',
     ],
   })
-  readonly highlights!: string[];
+  readonly highlights?: string[];
 
-  @ApiProperty({
-    description: '평가 시 보냈던 텍스트',
-    example: 'Hello, this is a test video. I hope you enjoy it.',
-  })
-  readonly submitText!: string;
-
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '평가시 보냈던 텍스트에 대한 AI 피드백 하이라이트 강조 텍스트',
     example: 'Hello, this is a test video. <b> I hope you enjoy it.</b>',
   })
-  readonly highlightSubmitText!: string;
+  readonly highlightSubmitText?: string;
 
   @ApiPropertyOptional({ description: '영상을 보냈을 경우 영상에 대한 영상, 음성 분리 경로 정보', type: MediaResponse })
   readonly mediaUrl?: MediaResponse;

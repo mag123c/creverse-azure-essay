@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SubmissionsService } from './service/submissions.service';
 import { OpenAIModule } from '@src/infra/azure/openai/openai.module';
 import { SubmissionsController } from './submissions.controller';
@@ -13,12 +13,14 @@ import { SubmissionLogsRepository } from './repositories/submission-logs.reposit
 import { SubmissionMediaUploader } from './uploader/submission-media-uploader';
 import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 import { SubmissionMediaRepository } from './repositories/submission-media.repository';
+import { QueueModule } from '@src/infra/queue/queue.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([SubmissionsEntity, SubmissionLogsEntity, SubmissionMediaEntity, RevisionsEntity]),
     OpenAIModule,
     BlobStorageModule,
+    forwardRef(() => QueueModule),
   ],
   providers: [
     SubmissionsService,
@@ -29,7 +31,7 @@ import { SubmissionMediaRepository } from './repositories/submission-media.repos
     SubmissionLogsRepository,
     SubmissionMediaRepository,
   ],
-  exports: [],
+  exports: [SubmissionsService, SubmissionEvaluator, SubmissionMediaUploader],
   controllers: [SubmissionsController],
 })
 export class SubmissionsModule {}

@@ -8,6 +8,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
 import { StudentsModule } from './students/students.module';
 import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 import { AuthModule } from './auth/auth.module';
+import { QueueModule } from '@src/infra/queue/queue.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AuthModule } from './auth/auth.module';
     CustomDatabaseModule,
     BlobStorageModule,
     OpenAIModule,
+    QueueModule,
 
     // Domain
     AuthModule,

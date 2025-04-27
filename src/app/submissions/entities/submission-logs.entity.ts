@@ -3,7 +3,12 @@ import { SubmissionStatus } from '../domain/submission';
 import { DefaultEntity } from '@src/common/abstract/default.entity';
 import { SubmissionsEntity } from './submissions.entity';
 
-export type SubmissionLogAction = 'INITIAL' | 'RETRY' | 'REVISION';
+export enum SubmissionLogAction {
+  INITIALIZE_SUBMISSION = 'INITIAL_SUBMISSION', // 최초 제출
+  RETRY_SUBMISSION = 'RETRY_SUBMISSION', // 재제출(배치)
+  REVISION_SUBMISSION = 'REVISION_SUBMISSION', // 수정 제출(유저에 의해 수동)
+  MEDIA_UPLOAD = 'MEDIA_UPLOAD', // 미디어 업로드 시
+}
 
 @Entity('submission_logs')
 export class SubmissionLogsEntity extends DefaultEntity {
@@ -18,16 +23,6 @@ export class SubmissionLogsEntity extends DefaultEntity {
   @Column({ type: 'varchar', length: 20 })
   status!: SubmissionStatus;
 
-  @Column({ type: 'int', default: 0 })
-  apiLatency!: number;
-
-  @Column({ length: 100, nullable: true })
-  traceId?: string;
-
-  @Column({ type: 'text', nullable: true })
-  errorMessage?: string;
-
-  // 요청·응답 원본 덤프
-  @Column({ type: 'jsonb', nullable: true })
-  payload?: any;
+  @Column({ type: 'int', nullable: true })
+  latency?: number;
 }

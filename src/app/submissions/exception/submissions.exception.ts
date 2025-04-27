@@ -7,7 +7,7 @@ export class InvalidComponentTypeException extends BaseException {
 }
 
 export class SubmissionNotFoundException extends BaseException {
-  constructor(submissionId: string) {
+  constructor(submissionId: number) {
     super(404, `제출을 찾을 수 없습니다: ${submissionId}`, { submissionId });
   }
 }

@@ -2,23 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { SubmissionsRequestDto } from '../dto/submissions-request.dto';
 import { Submission, SubmissionStatus } from '../domain/submission';
 import { SubmissionEvaluator } from './submissions.evaluator';
-import { SubmissionsResponseDto } from '../dto/submissions-response.dto';
-import { Transactional } from 'typeorm-transactional';
 import { SubmissionsRepository } from '../repositories/submissions.repository';
-import { DuplicateSubmissionException } from '../exception/submissions.exception';
-import { generateTraceId } from '@src/common/utils/crpyto';
-import { SubmissionsEntity } from '../entities/submissions.entity';
-import { SubmissionLogsRepository } from '../repositories/submission-logs.repository';
-import { SubmissionLogAction } from '../entities/submission-logs.entity';
+import { DuplicateSubmissionException, SubmissionNotFoundException } from '../exception/submissions.exception';
 import { SubmissionMediaUploader } from '../uploader/submission-media-uploader';
-import { SubmissionMediaRepository } from '../repositories/submission-media.repository';
 import { Student } from '@src/app/students/domain/student';
+import { SubmissionProducer } from '@src/infra/queue/submissions/submission.producer';
+import { SubmissionLogAction, SubmissionLogsEntity } from '../entities/submission-logs.entity';
+import { SubmissionLogsRepository } from '../repositories/submission-logs.repository';
+import { SubmissionMediaRepository } from '../repositories/submission-media.repository';
+import { SubmissionsEntity } from '../entities/submissions.entity';
+import { Transactional } from 'typeorm-transactional';
 
 @Injectable()
 export class SubmissionsService {
   constructor(
     private readonly evaluator: SubmissionEvaluator,
     private readonly uploader: SubmissionMediaUploader,
+    private readonly submissionProducer: SubmissionProducer,
 
     private readonly submissionsRepository: SubmissionsRepository,
     private readonly submissionLogsRepository: SubmissionLogsRepository,
@@ -28,131 +28,66 @@ export class SubmissionsService {
   /**
    * @API POST /v1/submissions - 학생 에세이 제출 (AI 평가 요청)
    * @description
-   *   학생의 영어 에세이를 제출하여 AI 평가를 요청하고, 결과를 반환합니다.
+   *   학생의 영어 에세이를 제출하여 AI 평가를 요청합니다.
    *   - 파일 업로드가 포함된 경우, 'multipart/form-data' 형식으로 요청되어야 하며 영상 파일이 포함됩니다.
    *   - 파일이 없는 경우, 'application/json' 형식으로 요청할 수 있습니다.
-   *   - 학생 1명당 동일한 컴포넌트 타입(componentType)은 1회만 제출 가능합니다. 이미 해당 타입으로 평가가 완료된 경우, 중복 제출은 허용되지 않습니다.   *
+   *   - 학생 1명당 동일한 컴포넌트 타입(componentType)은 1회만 제출 가능합니다. 이미 해당 타입으로 평가가 완료된 경우, 중복 제출은 허용되지 않습니다.
+   *   - 요청 시, 평가 전으로 등록되고 영상 처리 및 평가 요청이 메세지 큐에 등록됩니다.
    *
    */
-  async generateSubmissionFeedback(
-    student: Student,
-    req: SubmissionsRequestDto,
-    videoFile?: Express.Multer.File,
-  ): Promise<SubmissionsResponseDto> {
-    const start = Date.now();
-
-    // 1. 중복된 컴포넌트 타입의 제출이 있다면 예외처리
+  @Transactional()
+  async generateSubmissionFeedback(student: Student, req: SubmissionsRequestDto, videoFile?: Express.Multer.File) {
+    // 중복된 컴포넌트 타입의 제출이 있다면 예외처리
+    await this.isDuplicateSubmission(student.id, req.componentType);
     if (await this.isDuplicateSubmission(student.id, req.componentType)) {
       throw new DuplicateSubmissionException(student.id, req.componentType);
     }
 
-    // 2. 중복된 컴포넌트 타입의 제출이 없다면, 평가 요청 저장
-    const savedSubmissionEntity = await this.saveIntializeSubmission(student, req);
-    const submission = Submission.ofEntity(savedSubmissionEntity);
+    // 평가 전으로 등록
+    const entity = await this.createPending(student, req);
+    await this.submissionProducer.enqueueSubmissionEvaluation(entity.id, videoFile?.path);
+    return Submission.ofEntity(entity).toDto();
+  }
+
+  /**
+   * 컨슈머에서 호출되는 평가 요청
+   */
+  async runEvaluationJob(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
+    const existsSubmission = await this.submissionsRepository.findOneWithRevisionLog(submissionId);
+    if (!existsSubmission) {
+      throw new SubmissionNotFoundException(submissionId);
+    }
+
+    // 기존 평가가 실패한 게 아닌 경우, 재평가 시도가 있었던 경우는 자동 재평가가 불가능함.
+    if (
+      (existsSubmission.status !== SubmissionStatus.PENDING && existsSubmission.status !== SubmissionStatus.FAILED) ||
+      (existsSubmission.logs && existsSubmission.logs.length > 0)
+    ) {
+      return;
+    }
+
+    const submission = Submission.ofEntity(existsSubmission);
+
+    // 평가 중으로 업데이트
+    await this.markEvaluating(submissionId);
 
     try {
-      // 3. 영상 파일이 있는 경우, 영상 처리 및 업로드
-      // 4. 평가 요청
-      const [mediaResult, evalResult] = await Promise.allSettled([
-        this.uploader.upload(videoFile),
-        this.evaluator.evaluate(submission),
+      // 평가 안에 상태 변경은 각 메서드에서 처리
+      const [, evaluate] = await Promise.allSettled([
+        this.uploader.upload(submission, videoPath), // 영상 파일이 있는 경우, 영상 처리 및 업로드
+        this.evaluator.evaluate(submission), // 평가 요청
       ]);
 
-      if (mediaResult.status === 'fulfilled' && mediaResult.value) {
-        submission.setMedia(mediaResult.value);
-      }
-      if (evalResult.status === 'fulfilled') {
-        submission.applyEvaluation(evalResult.value);
-      } else {
-        throw evalResult.reason;
+      // 평가 실패 시 예외처리
+      if (evaluate.status !== 'fulfilled') {
+        throw evaluate.reason;
       }
 
-      return submission.toDto();
+      await this.saveSubmissionResult(existsSubmission, submission, action);
     } catch (e: any) {
-      submission.markAsFailed(e.message);
+      submission.markAsFailed();
+      await this.saveSubmissionResult(existsSubmission, submission, action);
       throw e;
-    } finally {
-      // 5. 평가 결과 저장
-      if (submission) {
-        submission.setLatency(Date.now() - start);
-        await this.saveSubmissionResult(submission, 'INITIAL');
-      }
-    }
-  }
-
-  /**
-   * 평가 요청 시 평가와 로그 최초 생성
-   */
-  @Transactional()
-  async saveIntializeSubmission(student: Student, req: SubmissionsRequestDto): Promise<SubmissionsEntity> {
-    const submissionEntity = this.submissionsRepository.create({
-      student: { id: student.id, name: student.name },
-      componentType: req.componentType,
-      submitText: req.submitText,
-      highlightSubmitText: '',
-      feedback: '',
-      highlights: [],
-      status: SubmissionStatus.EVALUATING,
-      traceId: generateTraceId(),
-    });
-
-    // 최초 제출 저장
-    const savedSubmissionEntity = await this.submissionsRepository.save(submissionEntity);
-
-    const submissionLogEntity = this.submissionLogsRepository.create({
-      submission: savedSubmissionEntity,
-      action: 'INITIAL',
-      status: SubmissionStatus.EVALUATING,
-      traceId: generateTraceId(),
-      payload: { request: req },
-    });
-
-    // 최초 제출 로그 저장
-    await this.submissionLogsRepository.save(submissionLogEntity);
-    submissionEntity.logs = [submissionLogEntity];
-    return savedSubmissionEntity;
-  }
-
-  /**
-   * 평가 결과 저장.
-   */
-  @Transactional()
-  async saveSubmissionResult(submission: Submission, action: SubmissionLogAction): Promise<void> {
-    const submissionEntity = this.submissionsRepository.create({
-      id: submission.getId(),
-      student: { id: submission.getStudentId(), name: submission.getStudentName() },
-      componentType: submission.getComponentType(),
-      submitText: submission.getSubmitText(),
-      highlightSubmitText: submission.getHighlightSubmitText(),
-      score: submission.getEvaluation()?.score,
-      feedback: submission.getEvaluation()?.feedback,
-      highlights: submission.getEvaluation()?.highlights,
-      mediaUrl: submission.getMedia(),
-      status: submission.getStatus(),
-      apiLatency: submission.getApiLatency(),
-      traceId: submission.getTraceId(),
-    });
-
-    const submissionLogEntity = this.submissionLogsRepository.create({
-      submission: submissionEntity,
-      action,
-      status: submission.getStatus(),
-      apiLatency: submission.getApiLatency(),
-      traceId: submission.getTraceId(),
-      payload: { response: submission.toDto() },
-    });
-
-    await this.submissionsRepository.save(submissionEntity);
-    await this.submissionLogsRepository.save(submissionLogEntity);
-
-    if (submission.getMedia()) {
-      const mediaEntity = this.submissionMediaRepository.create({
-        submission: submissionEntity,
-        videoUrl: submission.getMedia()?.getVideoUrl(),
-        audioUrl: submission.getMedia()?.getAudioUrl(),
-        meta: submission.getMedia()?.getMeta(),
-      });
-      await this.submissionMediaRepository.save(mediaEntity);
     }
   }
 
@@ -160,7 +95,128 @@ export class SubmissionsService {
    * 중복된 제출이 있는지
    */
   private async isDuplicateSubmission(studentId: number, componentType: string): Promise<boolean> {
-    const submission = await this.submissionsRepository.findDuplicateSubmission(studentId, componentType);
+    const submission = await this.submissionsRepository.findOneByStudentIdAndComponentType(studentId, componentType);
     return submission !== null;
+  }
+
+  /**
+   * 평가 최초 생성
+   */
+  @Transactional()
+  private async createPending(student: Student, dto: SubmissionsRequestDto): Promise<SubmissionsEntity> {
+    const submissionEntity = await this.submissionsRepository.save(
+      this.submissionsRepository.create({
+        student: { id: student.id },
+        componentType: dto.componentType,
+        submitText: dto.submitText,
+        status: SubmissionStatus.PENDING,
+      }),
+    );
+
+    const submissionLogEntity = this.createSubmissionLog(
+      submissionEntity,
+      SubmissionLogAction.INITIALIZE_SUBMISSION,
+      SubmissionStatus.PENDING,
+      0,
+    );
+    await this.submissionLogsRepository.save(submissionLogEntity);
+    submissionEntity.logs = [submissionLogEntity];
+    return submissionEntity;
+  }
+
+  /**
+   * 평가 중으로 업데이트
+   */
+  @Transactional()
+  private async markEvaluating(id: number) {
+    const submissionEntity = await this.submissionsRepository.findOneBySubmissionId(id);
+    if (!submissionEntity) {
+      throw new SubmissionNotFoundException(id);
+    }
+
+    submissionEntity.status = SubmissionStatus.EVALUATING;
+
+    await Promise.all([
+      this.submissionsRepository.save(submissionEntity),
+      this.submissionLogsRepository.save(
+        this.createSubmissionLog(
+          submissionEntity,
+          SubmissionLogAction.INITIALIZE_SUBMISSION,
+          SubmissionStatus.EVALUATING,
+          0,
+        ),
+      ),
+    ]);
+  }
+
+  /**
+   * 평가 완료 후 저장
+   */
+  @Transactional()
+  private async saveSubmissionResult(
+    existsEntity: SubmissionsEntity,
+    submission: Submission,
+    action: SubmissionLogAction,
+  ) {
+    const submissionLogs = [];
+
+    // 평가 로그
+    const latency = submission.getEvaluation()?.getLatency() ?? 0;
+    const submissionLog = this.createSubmissionLog(existsEntity, action, submission.getStatus()!, latency);
+    submissionLogs.push(submissionLog);
+
+    // 영상 처리 저장
+    const media = submission.getMedia();
+    if (media) {
+      const mediaStatus =
+        media.getVideoUrl() && media.getAudioUrl() ? SubmissionStatus.SUCCESS : SubmissionStatus.FAILED;
+      const mediaLatency = media.getLatency();
+      const mediaLog = this.createSubmissionLog(
+        existsEntity,
+        SubmissionLogAction.MEDIA_UPLOAD,
+        mediaStatus,
+        mediaLatency,
+      );
+
+      submissionLogs.push(mediaLog);
+
+      // 영상 처리 결과 저장
+      if (mediaStatus === SubmissionStatus.SUCCESS) {
+        await this.submissionMediaRepository.save({
+          submission: existsEntity,
+          videoUrl: media.getVideoUrl(),
+          audioUrl: media.getAudioUrl(),
+          meta: media.getMeta(),
+        });
+      }
+    }
+
+    // 평가 결과 + 로그 저장
+    await this.submissionsRepository.update(existsEntity.id, {
+      highlightSubmitText: submission.getHighlightSubmitText(),
+      score: submission.getEvaluation()?.getScore(),
+      feedback: submission.getEvaluation()?.getFeedback(),
+      highlights: submission.getEvaluation()?.getHighlights(),
+      mediaUrl: submission.getMedia()?.toJson(),
+      status: submission.getStatus()!,
+    });
+    await this.submissionLogsRepository.save(submissionLogs);
+  }
+
+  /**
+   * 로그 생성
+   */
+  private createSubmissionLog(
+    submissionEntity: SubmissionsEntity,
+    action: SubmissionLogAction,
+    status: SubmissionStatus,
+    latency: number,
+  ): SubmissionLogsEntity {
+    return this.submissionLogsRepository.create({
+      action,
+      status,
+      latency,
+      submission: submissionEntity,
+    });
   }
 }

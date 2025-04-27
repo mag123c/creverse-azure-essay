@@ -9,11 +9,13 @@ export class Media {
   private readonly videoUrl!: string;
   private readonly audioUrl!: string;
   private readonly meta!: FileMetadata;
+  private readonly latency: number = 0;
 
-  constructor(videoUrl: string, audioUrl: string, meta: FileMetadata) {
+  constructor(videoUrl: string, audioUrl: string, meta: FileMetadata, latency: number) {
     this.videoUrl = audioUrl;
     this.audioUrl = videoUrl;
     this.meta = meta;
+    this.latency = latency;
   }
 
   getVideoUrl(): string {
@@ -25,9 +27,12 @@ export class Media {
   getMeta(): FileMetadata {
     return this.meta;
   }
+  getLatency(): number {
+    return this.latency;
+  }
 
-  static of(videoUrl: string, audioUrl: string, meta: FileMetadata): Media {
-    return new Media(videoUrl, audioUrl, meta);
+  static of(videoUrl: string, audioUrl: string, meta: FileMetadata, latency: number): Media {
+    return new Media(videoUrl, audioUrl, meta, latency);
   }
 
   toJson(): any {

@@ -1,14 +1,13 @@
-import { generateTraceId } from '@src/common/utils/crpyto';
 import { SubmissionsResponseDto } from '../dto/submissions-response.dto';
 import type { Evaluation } from './evaluation';
 import type { Media } from './media';
 import type { SubmissionsEntity } from '../entities/submissions.entity';
 
 export enum SubmissionStatus {
-  PENDING = 'PENDING',
-  EVALUATING = 'EVALUATING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
+  PENDING = 'PENDING', // 대기중
+  EVALUATING = 'EVALUATING', // 평가중
+  SUCCESS = 'SUCCESS', // 평가완료
+  FAILED = 'FAILED', // 평가실패
 }
 
 export class Submission {
@@ -21,10 +20,7 @@ export class Submission {
     private status: SubmissionStatus = SubmissionStatus.PENDING,
     private evaluation?: Evaluation,
     private media?: Media,
-    private apiLatency: number = 0,
     private highlightSubmitText: string = '',
-    private errorMessage?: string,
-    private readonly traceId: string = generateTraceId(),
   ) {}
 
   getId(): number | undefined {
@@ -48,29 +44,18 @@ export class Submission {
   getMedia(): Media | undefined {
     return this.media;
   }
-  getStatus(): SubmissionStatus {
+  getStatus(): SubmissionStatus | undefined {
     return this.status;
-  }
-  getApiLatency(): number {
-    return this.apiLatency;
   }
   getHighlightSubmitText(): string {
     return this.highlightSubmitText;
   }
-  getTraceId(): string {
-    return this.traceId;
-  }
-  getErrorMessage(): string | undefined {
-    return this.errorMessage;
-  }
-  setErrorMessage(errorMessage: string): void {
-    this.errorMessage = errorMessage;
-  }
-  setLatency(latency: number) {
-    this.apiLatency = latency;
-  }
   setMedia(media: Media): void {
     this.media = media;
+  }
+
+  markAsEvaluating() {
+    this.status = SubmissionStatus.EVALUATING;
   }
 
   applyEvaluation(evaluation: Evaluation): void {
@@ -79,13 +64,14 @@ export class Submission {
     this.highlightSubmitText = this.generateHighlightSubmitText();
   }
 
-  markAsEvaluating(): void {
-    this.status = SubmissionStatus.EVALUATING;
+  /** 평가 실패 시 호출 */
+  applyEvaluationFailed(evaluation: Evaluation): void {
+    this.evaluation = evaluation;
+    this.status = SubmissionStatus.FAILED;
   }
 
-  markAsFailed(errorMessage: string): void {
+  markAsFailed(): void {
     this.status = SubmissionStatus.FAILED;
-    this.errorMessage = errorMessage;
   }
 
   toDto(): SubmissionsResponseDto {
@@ -93,9 +79,9 @@ export class Submission {
       studentId: this.studentId,
       studentName: this.studentName,
       submitText: this.submitText,
-      score: this.evaluation?.score ?? 0,
-      feedback: this.evaluation?.feedback ?? '',
-      highlights: this.evaluation?.highlights ?? [],
+      score: this.evaluation?.getScore(),
+      feedback: this.evaluation?.getFeedback(),
+      highlights: this.evaluation?.getHighlights(),
       highlightSubmitText: this.highlightSubmitText,
     });
   }
@@ -123,7 +109,7 @@ export class Submission {
   private generateHighlightSubmitText(): string {
     if (!this.evaluation) return this.submitText;
 
-    const highlights = this.evaluation.highlights.filter((h): h is string => typeof h === 'string');
+    const highlights = this.evaluation.getHighlights().filter((h): h is string => typeof h === 'string');
 
     const sortedHighlights = [...highlights].sort((a, b) => b.length - a.length);
     let result = this.submitText;

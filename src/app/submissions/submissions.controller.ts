@@ -30,6 +30,7 @@ export class SubmissionsController {
   // @UseInterceptors(FileInterceptor('videoFile'))
   @UseInterceptors(
     FileInterceptor('videoFile', {
+      // 임시 저장
       storage: diskStorage({
         destination: './tmp',
         filename: (_, file, cb) => {

@@ -28,6 +28,7 @@
     "@azure/openai": "^2.0.0",
     "@azure/storage-blob": "^12.27.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@nestjs/bullmq": "^11.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -37,6 +38,7 @@
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.1.5",
     "@nestjs/typeorm": "^11.0.0",
+    "bullmq": "^5.51.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.8.0",
@@ -111,6 +113,7 @@
     "collectCoverageFrom": [
       "src/app/**/*.ts",
       "!src/app/**/*.module.ts",
+      "!src/app/auth/**/*.ts",
       "src/infra/**/*.ts",
       "!src/infra/**/*.module.ts",
       "!src/infra/database/**/*.ts",

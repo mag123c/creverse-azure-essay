@@ -21,7 +21,7 @@ export const typeORMConfig = (configService: ConfigService) => {
     autoLoadEntities: true,
     synchronize: isLocal() || isTest(),
     dropSchema: isLocal() || isTest(),
-    logging: isLocal() || isTest(),
+    logging: isLocal(),
     namingStrategy: new SnakeNamingStrategy(),
     dateStrings: true,
     charset: 'utf8mb4',

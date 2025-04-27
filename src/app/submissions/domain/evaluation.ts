@@ -1,12 +1,31 @@
-import { generateTraceId } from '@src/common/utils/crpyto';
-
 export class Evaluation {
   constructor(
-    public readonly score: number,
-    public readonly feedback: string,
-    public readonly highlights: string[],
-    public readonly traceId: string = generateTraceId(),
+    private readonly score: number,
+    private readonly feedback: string,
+    private readonly highlights: string[],
+    private latency: number = 0,
   ) {}
+
+  getScore(): number {
+    return this.score;
+  }
+  getFeedback(): string {
+    return this.feedback;
+  }
+  getHighlights(): string[] {
+    return this.highlights;
+  }
+  getLatency(): number {
+    return this.latency;
+  }
+
+  setLatency(latency: number) {
+    this.latency = latency;
+  }
+
+  static of(score: number, feedback: string, highlights: string[], latency?: number): Evaluation {
+    return new Evaluation(score, feedback, highlights, latency);
+  }
 
   /**
    * 학생 에세이 평가 결과를 JSON 형식으로 변환합니다.

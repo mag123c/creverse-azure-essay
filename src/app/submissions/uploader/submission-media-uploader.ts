@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlobStorageService } from '@src/infra/azure/blob/service/blob-storage.service';
-import { Media } from '../domain/media';
+import { FileMetadata, Media } from '../domain/media';
 import { FfmpegProcessor } from '@src/infra/processor/ffmpeg.processor';
 import * as fs from 'fs/promises';
+import { Submission } from '../domain/submission';
 
 @Injectable()
 export class SubmissionMediaUploader {
@@ -13,34 +14,42 @@ export class SubmissionMediaUploader {
     private readonly blobStorage: BlobStorageService,
   ) {}
 
-  async upload(videoFile?: Express.Multer.File): Promise<Media | null> {
-    if (!videoFile) {
-      return null;
+  async upload(submission: Submission, videoPath?: string): Promise<void> {
+    if (!videoPath) {
+      return;
     }
 
-    this.logger.log(`영상 처리 시작: ${videoFile.originalname}`);
+    this.logger.log(`ID: ${submission.getId()}의 제출된 영상 처리 시작`);
 
     const start = Date.now();
-    try {
-      const { mutedVideoPath, audioPath, meta } = await this.ffmpeg.process(videoFile.path);
+    let mutedPath: string | undefined;
+    let audioPath: string | undefined;
 
-      const video = await this.blobStorage.uploadFileFromPath(mutedVideoPath, 'video/mp4');
+    try {
+      const result = await this.ffmpeg.process(videoPath);
+      mutedPath = result.mutedVideoPath;
+      audioPath = result.audioPath;
+      const meta = result.meta;
+
+      const video = await this.blobStorage.uploadFileFromPath(mutedPath, 'video/mp4');
       const audio = await this.blobStorage.uploadFileFromPath(audioPath, 'audio/mp3');
 
-      const latency = Date.now() - start;
-      this.logger.log(`영상 업로드 완료 (${latency}ms)`);
-
-      return Media.of(video.sasUrl, audio.sasUrl, meta);
+      this.logger.log(`영상 업로드 완료`);
+      submission.setMedia(Media.of(video.sasUrl, audio.sasUrl, meta, Date.now() - start));
     } catch (e: any) {
+      submission.setMedia(Media.of('', '', {} as FileMetadata, Date.now() - start));
       this.logger.error(`영상 처리 실패: ${e.message}`, e.stack);
       throw e;
     } finally {
-      // 영상 파일 삭제
-      try {
-        await fs.unlink(videoFile.path);
-        this.logger.log(`영상 파일 삭제 완료: ${videoFile.path}`);
-      } catch (e: any) {
-        this.logger.error(`영상 파일 삭제 실패: ${e.message}`, e.stack);
+      // 파일 정리: 원본, muted, audio
+      const pathsToDelete = [videoPath, mutedPath, audioPath].filter((p): p is string => typeof p === 'string');
+      for (const p of pathsToDelete) {
+        try {
+          await fs.unlink(p);
+          this.logger.log(`임시 파일 삭제 완료: ${p}`);
+        } catch (err: any) {
+          this.logger.error(`임시 파일 삭제 실패 (${p}): ${err.message}`, err.stack);
+        }
       }
     }
   }

@@ -12,11 +12,12 @@ export const setupModule = async (
   modules: Array<Type<any> | DynamicModule | Promise<DynamicModule>>,
   providers?: Array<Type<any> | Provider>,
   controllers?: Array<Type<any> | any>,
+  mocks?: Array<{ provide: any; useValue: any }>,
 ): Promise<TestingModule> => {
   if (modules.includes(CustomDatabaseModule) || modules.includes(AppModule)) {
     initializeTransactionalContext({ storageDriver: StorageDriver.AUTO });
   }
-  return await Test.createTestingModule({
+  const moduleRef = Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({
         ...envConfig(),
@@ -25,7 +26,13 @@ export const setupModule = async (
     ],
     providers: [...(providers ?? [])],
     controllers: [...(controllers ?? [])],
-  }).compile();
+  });
+
+  if (mocks) {
+    mocks.forEach((mock) => moduleRef.overrideProvider(mock.provide).useValue(mock.useValue));
+  }
+
+  return await moduleRef.compile();
 };
 
 export const setupApp = async (app: INestApplication) => {

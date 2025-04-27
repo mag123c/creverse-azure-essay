@@ -25,14 +25,16 @@ export class BlobStorageService {
     const containerClient = this.client.getContainerClient(this.containerName);
     const blobClient = containerClient.getBlockBlobClient(blobName);
 
-    const stream = createReadStream(path);
-    await blobClient.uploadStream(stream, undefined, undefined, {
-      blobHTTPHeaders: {
-        blobContentType: contentType,
-      },
-    });
-
-    await unlink(path);
+    const stream = createReadStream(path, { autoClose: true });
+    try {
+      await blobClient.uploadStream(stream, undefined, undefined, {
+        blobHTTPHeaders: { blobContentType: contentType },
+      });
+    } catch (e) {
+      throw e;
+    } finally {
+      await unlink(path);
+    }
 
     const sasUrl = this.getSasUrl(blobName);
 
