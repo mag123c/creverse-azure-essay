@@ -40,7 +40,6 @@ export class SubmissionsController {
   @ApiBody({ type: CreateSubmissionsRequestWithFile })
   @ApiConsumes('multipart/form-data')
   @ApiConsumes('application/json')
-  // @UseInterceptors(FileInterceptor('videoFile'))
   @UseInterceptors(
     FileInterceptor('videoFile', {
       // 임시 저장

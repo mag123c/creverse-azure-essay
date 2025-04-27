@@ -3,7 +3,12 @@ import { CreateSubmissionsRequestDto, GetSubmissionsRequestDto } from '../dto/su
 import { Submission, SubmissionStatus } from '../domain/submission';
 import { SubmissionEvaluator } from './submissions.evaluator';
 import { SubmissionsRepository } from '../repositories/submissions.repository';
-import { DuplicateSubmissionException, SubmissionNotFoundException } from '../exception/submissions.exception';
+import {
+  AlreadyEvaluatedException,
+  AlreadyRevisedSubmissionException,
+  DuplicateSubmissionException,
+  SubmissionNotFoundException,
+} from '../exception/submissions.exception';
 import { SubmissionMediaUploader } from '../uploader/submission-media-uploader';
 import { Student } from '@src/app/students/domain/student';
 import { SubmissionProducer } from '@src/infra/queue/submissions/submission.producer';
@@ -49,7 +54,7 @@ export class SubmissionsService {
    *   - 파일 업로드가 포함된 경우, 'multipart/form-data' 형식으로 요청되어야 하며 영상 파일이 포함됩니다.
    *   - 파일이 없는 경우, 'application/json' 형식으로 요청할 수 있습니다.
    *   - 학생 1명당 동일한 컴포넌트 타입(componentType)은 1회만 제출 가능합니다. 이미 해당 타입으로 평가가 완료된 경우, 중복 제출은 허용되지 않습니다.
-   *   - 요청 시, 평가 전으로 등록되고 영상 처리 및 평가 요청이 메세지 큐에 등록됩니다.
+   *   - 평가 실패 시 영상 처리 및 평가 요청이 메세지 큐에 등록됩니다.
    *
    */
   @Transactional()
@@ -66,25 +71,30 @@ export class SubmissionsService {
 
     // 평가 전으로 등록
     const entity = await this.createPending(student, req);
-    await this.submissionProducer.enqueueSubmissionEvaluation(entity.id, videoFile?.path);
-    return Submission.ofEntity(entity).toDto();
+    return await this.evaluateSubmission(entity.id, SubmissionLogAction.INITIALIZE_SUBMISSION, videoFile?.path);
   }
 
   /**
    * 컨슈머에서 호출되는 평가 요청
    */
   async runEvaluationJob(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
+    await this.evaluateSubmission(submissionId, action, videoPath);
+  }
+
+  private async evaluateSubmission(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
     const existsSubmission = await this.submissionsRepository.findOneWithRevisionLog(submissionId);
     if (!existsSubmission) {
       throw new SubmissionNotFoundException(submissionId);
     }
 
-    // 기존 평가가 실패한 게 아닌 경우, 재평가 시도가 있었던 경우는 자동 재평가가 불가능함.
-    if (
-      (existsSubmission.status !== SubmissionStatus.PENDING && existsSubmission.status !== SubmissionStatus.FAILED) ||
-      (existsSubmission.logs && existsSubmission.logs.length > 0)
-    ) {
-      return;
+    // 기존 평가가 실패한 게 아닌 경우
+    if (existsSubmission.status !== SubmissionStatus.PENDING && existsSubmission.status !== SubmissionStatus.FAILED) {
+      throw new AlreadyEvaluatedException(submissionId);
+    }
+
+    // 재평가 시도가 있었던 경우
+    if (existsSubmission.logs && existsSubmission.logs.length > 0) {
+      throw new AlreadyRevisedSubmissionException(submissionId);
     }
 
     const submission = Submission.ofEntity(existsSubmission);
@@ -105,9 +115,12 @@ export class SubmissionsService {
       }
 
       await this.saveSubmissionResult(existsSubmission, submission, action);
+      return submission.toDto();
     } catch (e: any) {
       submission.markAsFailed();
       await this.saveSubmissionResult(existsSubmission, submission, action);
+      // 재평가 요청
+      await this.submissionProducer.enqueueSubmissionEvaluation(submissionId, videoPath);
       throw e;
     }
   }

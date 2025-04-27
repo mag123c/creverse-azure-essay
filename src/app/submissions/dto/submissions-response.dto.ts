@@ -18,7 +18,7 @@ class MediaResponse {
   }
 }
 
-class SubmissionsResponse {
+class SubmissionsDetailResponse {
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
 
@@ -100,31 +100,72 @@ class SubmissionsResponse {
   }
 }
 
-export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsResponse> {
-  @ApiProperty({ type: SubmissionsResponse })
-  data: SubmissionsResponse;
+export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsDetailResponse> {
+  @ApiProperty({ type: SubmissionsDetailResponse })
+  data: SubmissionsDetailResponse;
 
-  constructor(data: SubmissionsResponse) {
+  constructor(data: SubmissionsDetailResponse) {
     super();
     this.data = data;
   }
 
-  static of(data: SubmissionsResponse): SubmissionsResponseDto {
+  static of(data: SubmissionsDetailResponse): SubmissionsResponseDto {
     return new SubmissionsResponseDto(data);
+  }
+}
+
+class SubmissionListItem {
+  @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
+  readonly studentId!: number;
+
+  @ApiProperty({ description: '학생 이름', example: '홍길동' })
+  readonly studentName!: string;
+
+  @ApiProperty({ description: '제출한 컴포넌트 타입', example: 'Essay' })
+  readonly componentType!: string;
+
+  @ApiProperty({ description: '제출 상태', enum: SubmissionStatus, example: 'EVALUATING' })
+  readonly status!: SubmissionStatus;
+
+  @ApiProperty({ description: '제출 일자', example: '2025-01-01T12:00:00Z' })
+  readonly createdDt!: Date;
+
+  @ApiProperty({ description: '업데이트 일자', example: '2025-01-01T12:00:00Z' })
+  readonly updatedDt!: Date;
+
+  @ApiPropertyOptional({ description: '점수(0 ~ 10)', example: 8 })
+  readonly score?: number;
+
+  constructor(data: {
+    studentId: number;
+    studentName: string;
+    componentType: string;
+    status: SubmissionStatus;
+    createdDt: Date;
+    updatedDt: Date;
+    score?: number;
+  }) {
+    this.studentId = data.studentId;
+    this.studentName = data.studentName;
+    this.componentType = data.componentType;
+    this.status = data.status;
+    this.createdDt = data.createdDt;
+    this.updatedDt = data.updatedDt;
+    this.score = data.score;
   }
 }
 
 /**
  * @GET /v1/submissions 응답 DTO
  */
-export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionsResponse> {
-  @ApiProperty({ type: () => SubmissionsResponseDto, isArray: true })
-  data: SubmissionsResponse[];
+export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionListItem> {
+  @ApiProperty({ type: () => SubmissionListItem, isArray: true })
+  data: SubmissionListItem[];
 
   @ApiProperty({ type: PaginationMetaDto })
   meta: PaginationMeta;
 
-  constructor(submissions: SubmissionsResponse[], meta: PaginationMeta) {
+  constructor(submissions: SubmissionListItem[], meta: PaginationMeta) {
     super();
     this.data = submissions;
     this.meta = meta;
@@ -133,21 +174,14 @@ export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionsRes
   static of(submissionsEntity: SubmissionsEntity[], meta: PaginationMeta): GetSubmissionsResponseDto {
     const submissions = submissionsEntity.map(
       (submission) =>
-        new SubmissionsResponse({
+        new SubmissionListItem({
           studentId: submission.student.id,
           studentName: submission.student.name,
           componentType: submission.componentType,
           status: submission.status,
-          submitText: submission.submitText,
           createdDt: submission.createdDt,
           updatedDt: submission.updatedDt,
           score: submission.score,
-          feedback: submission.feedback,
-          highlights: submission.highlights,
-          highlightSubmitText: submission.highlightSubmitText,
-          mediaUrl: submission.media
-            ? new MediaResponse(submission.media.videoUrl, submission.media.audioUrl)
-            : undefined,
         }),
     );
     return new GetSubmissionsResponseDto(submissions, meta);

@@ -56,6 +56,15 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
     const baseQuery = this.createQueryBuilder('submission')
       .innerJoinAndSelect('submission.student', 'student')
       .leftJoinAndSelect('submission.media', 'media')
+      .select([
+        'submission.id',
+        'submission.componentType',
+        'submission.status',
+        'submission.createdDt',
+        'submission.score',
+        'student.id',
+        'student.name',
+      ])
       .where('student.id = :studentId', { studentId });
 
     // 필터

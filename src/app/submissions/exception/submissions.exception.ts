@@ -6,6 +6,17 @@ export class InvalidComponentTypeException extends BaseException {
   }
 }
 
+export class AlreadyRevisedSubmissionException extends BaseException {
+  constructor(submissionId: number) {
+    super(400, `이미 재평가된 제출입니다: ${submissionId}`, { submissionId });
+  }
+}
+
+export class AlreadyEvaluatedException extends BaseException {
+  constructor(submissionId: number) {
+    super(400, `이미 평가된 제출입니다: ${submissionId}`, { submissionId });
+  }
+}
 export class SubmissionNotFoundException extends BaseException {
   constructor(submissionId: number) {
     super(404, `제출을 찾을 수 없습니다: ${submissionId}`, { submissionId });

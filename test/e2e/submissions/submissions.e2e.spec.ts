@@ -203,5 +203,16 @@ describe('[e2e] Submissions', () => {
       const expectedHasNext = meta.total > meta.currentPage * meta.perPage;
       expect(meta.hasNext).toBe(expectedHasNext);
     });
+
+    it('조회 결과가 없으면 빈 배열을 가져온다.', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/submissions')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      console.log(response.body);
+      expect(response.body.data).toEqual([]);
+      expect(response.body.meta.total).toBe(0);
+    });
   });
 });

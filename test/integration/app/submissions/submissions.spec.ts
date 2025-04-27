@@ -3,6 +3,8 @@ import { QueueModule } from '@src/infra/queue/queue.module';
 import { type Submission, SubmissionStatus } from '@src/app/submissions/domain/submission';
 import { SubmissionLogAction } from '@src/app/submissions/entities/submission-logs.entity';
 import {
+  AlreadyEvaluatedException,
+  AlreadyRevisedSubmissionException,
   DuplicateSubmissionException,
   SubmissionNotFoundException,
 } from '@src/app/submissions/exception/submissions.exception';
@@ -62,8 +64,6 @@ describe('[integration] Submissions', () => {
     studentRepository = moduleRef.get<StudentsRepository>(StudentsRepository);
   });
 
-  beforeEach(async () => {});
-
   afterEach(async () => {
     await submissionsRepository.delete({});
     await submissionLogsRepository.delete({});
@@ -87,14 +87,19 @@ describe('[integration] Submissions', () => {
   });
 
   describe('평가 요청(generateSubmissionFeedback)', () => {
-    it('평가 요청 시 큐에 Job이 등록된다.', async () => {
+    it('평가 요청에 실패하면 큐에 Job이 등록된다.', async () => {
+      mockEvaluator.evaluate.mockImplementation(async () => {
+        throw new OpenAIApiException('evaluation error', 'evaluation error');
+      });
       const student = await studentRepository.save(StudentFixture.createMockStudent());
 
-      await submissionsService.generateSubmissionFeedback(
-        { id: student.id, name: student.name },
-        { componentType: 'Essay Writing', submitText: 'Test queue' },
-        await VideoFileFixture.prepareTmpMulterFile(),
-      );
+      try {
+        await submissionsService.generateSubmissionFeedback(
+          { id: student.id, name: student.name },
+          { componentType: 'Essay Writing', submitText: 'Test queue' },
+          await VideoFileFixture.prepareTmpMulterFile(),
+        );
+      } catch {}
 
       // 큐에 Job이 등록되었는지 확인
       const suite = await submissionProducer['submissionQueue'].getJobs();
@@ -104,26 +109,6 @@ describe('[integration] Submissions', () => {
         submissionId: expect.any(Number),
         videoPath: expect.any(String),
       });
-    });
-
-    it('평가 요청 시 DB에 평가가 PENDING으로 등록된다.', async () => {
-      const student = await studentRepository.save(StudentFixture.createMockStudent());
-
-      await submissionsService.generateSubmissionFeedback(
-        { id: student.id, name: student.name },
-        { componentType: 'Essay Writing', submitText: 'Test queue' },
-        await VideoFileFixture.prepareTmpMulterFile(),
-      );
-
-      // DB 엔티티 상태 체크
-      const [suite] = await submissionsRepository.find({
-        where: { student: { id: student.id } },
-        relations: ['logs'],
-      });
-      expect(suite.status).toBe(SubmissionStatus.PENDING);
-      expect(suite.logs).toHaveLength(1);
-      expect(suite.logs![0].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
-      expect(suite.logs![0].status).toBe(SubmissionStatus.PENDING);
     });
 
     it('중복 제출 시 예외를 반환한다.', async () => {
@@ -141,13 +126,13 @@ describe('[integration] Submissions', () => {
   });
 
   describe('평가 수행(runEvaluationJob)', () => {
-    it('큐에 의해 평가가 수행될 때, 큐에 등록된 submissionId가 없으면 예외를 던진다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, 큐에 등록된 submissionId가 없으면 예외를 던진다.', async () => {
       await expect(
         submissionsService.runEvaluationJob(999, SubmissionLogAction.INITIALIZE_SUBMISSION),
       ).rejects.toBeInstanceOf(SubmissionNotFoundException);
     });
 
-    it('큐에 의해 평가가 수행될 때, submission의 상태가 PENDING/FAILED가 아니면 아무 작업도 하지 않는다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, submission의 상태가 PENDING/FAILED가 아니면 아무 작업도 하지 않는다.', async () => {
       // 최초 평가 -> 성공 데이터를 입력
       const student = await studentRepository.save(StudentFixture.createMockStudentEntity());
       const mockSubmission = SubmissionsFixture.creatSubmissionEntity(student, { status: SubmissionStatus.SUCCESS });
@@ -155,20 +140,12 @@ describe('[integration] Submissions', () => {
       await submissionsRepository.save(mockSubmission);
       await submissionLogsRepository.save(mockSubmissionLog);
 
-      const markEvaluatingSpy = jest.spyOn(submissionsService as any, 'markEvaluating');
-      const saveSubmissionResultSpy = jest.spyOn(submissionsService as any, 'saveSubmissionResult');
-      const uploaderSpy = jest.spyOn(submissionsService['uploader'], 'upload' as any);
-      const evaluatorSpy = jest.spyOn(submissionsService['evaluator'], 'evaluate' as any);
-
-      await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION);
-
-      expect(markEvaluatingSpy).not.toHaveBeenCalled();
-      expect(saveSubmissionResultSpy).not.toHaveBeenCalled();
-      expect(uploaderSpy).not.toHaveBeenCalled();
-      expect(evaluatorSpy).not.toHaveBeenCalled();
+      await expect(
+        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION),
+      ).rejects.toBeInstanceOf(AlreadyEvaluatedException);
     });
 
-    it('큐에 의해 평가가 수행될 때, submission에 수동 재시도 로그가 있으면 아무 작업도 하지 않는다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, submission에 수동 재시도 로그가 있으면 아무 작업도 하지 않는다.', async () => {
       // 최초 평가 실패 -> 수동 재시도 로그 입력
       const student = await studentRepository.save(StudentFixture.createMockStudentEntity());
       const mockSubmission = SubmissionsFixture.creatSubmissionEntity(student, { status: SubmissionStatus.FAILED });
@@ -188,20 +165,12 @@ describe('[integration] Submissions', () => {
       await submissionsRepository.save(mockSubmission);
       await submissionLogsRepository.save(mockSubmissionLogs);
 
-      const markEvaluatingSpy = jest.spyOn(submissionsService as any, 'markEvaluating');
-      const saveSubmissionResultSpy = jest.spyOn(submissionsService as any, 'saveSubmissionResult');
-      const uploaderSpy = jest.spyOn(submissionsService['uploader'], 'upload' as any);
-      const evaluatorSpy = jest.spyOn(submissionsService['evaluator'], 'evaluate' as any);
-
-      await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION);
-
-      expect(markEvaluatingSpy).not.toHaveBeenCalled();
-      expect(saveSubmissionResultSpy).not.toHaveBeenCalled();
-      expect(uploaderSpy).not.toHaveBeenCalled();
-      expect(evaluatorSpy).not.toHaveBeenCalled();
+      await expect(
+        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION),
+      ).rejects.toBeInstanceOf(AlreadyRevisedSubmissionException);
     });
 
-    it('큐에 의해 평가가 수행될 때, submission이 존재하면 평가를 수행한다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, submission이 존재하면 평가를 수행한다.', async () => {
       // 평가 실패
       mockEvaluator.evaluate.mockImplementation(async () => {
         throw new OpenAIApiException('error', 'error');
@@ -219,7 +188,7 @@ describe('[integration] Submissions', () => {
       ).rejects.toBeInstanceOf(OpenAIApiException);
     });
 
-    it('큐에 의해 평가가 수행될 때, 평가가 성공하고 업로더(upload)가 실패하면 업로드 실패 로그가 생성된다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, 평가가 성공하고 업로더(upload)가 실패하면 업로드 실패 로그가 생성된다.', async () => {
       // 평가 실패
       mockEvaluator.evaluate.mockImplementation(async (submission: Submission) => {
         submission.applyEvaluation(EvaluationFixture.createEvaluation());
@@ -253,7 +222,7 @@ describe('[integration] Submissions', () => {
       expect(submission.logs![3].status).toBe(SubmissionStatus.FAILED);
     });
 
-    it('큐에 의해 평가가 수행될 때, 평가와 업로더(upload)가 모두 성공하면 status가 SUCCESS이고 mediaUrl이 저장된다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, 평가와 업로더(upload)가 모두 성공하면 status가 SUCCESS이고 mediaUrl이 저장된다.', async () => {
       mockEvaluator.evaluate.mockImplementation(async (submission: Submission) => {
         submission.applyEvaluation(EvaluationFixture.createEvaluation());
       });
@@ -285,7 +254,7 @@ describe('[integration] Submissions', () => {
       expect(submission.logs![3].status).toBe(SubmissionStatus.SUCCESS);
     });
 
-    it('큐에 의해 평가가 수행될 때, evaluator가 실패하면 submission이 FAILED로 저장된다.', async () => {
+    it('큐에 의해 재평가가 수행될 때, evaluator가 실패하면 submission이 FAILED로 저장된다.', async () => {
       mockEvaluator.evaluate.mockImplementation(async () => {
         throw new OpenAIApiException('evaluation error', 'evaluation error');
       });
