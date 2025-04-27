@@ -18,7 +18,7 @@ import { SubmissionMediaRepository } from '../repositories/submission-media.repo
 import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
-import { GetSubmissionsResponseDto } from '../dto/submissions-response.dto';
+import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
 
 @Injectable()
 export class SubmissionsService {
@@ -45,6 +45,25 @@ export class SubmissionsService {
       await this.submissionsRepository.findStudentSubmissionsWithPagination(student.id, { ...req });
 
     return GetSubmissionsResponseDto.of(submissionsWithPagination.data, submissionsWithPagination.meta);
+  }
+
+  /**
+   * @API GET /v1/submissions/:submissionId - 학생 에세이 제출 상세 조회
+   * @description
+   *  학생이 제출한 에세이의 상세 내역을 조회합니다.
+   */
+  async getSubmissionDetail(student: Student, submissionId: number): Promise<SubmissionDetailResponseDto> {
+    const submission = await this.submissionsRepository.findStudentSubmissionDetail(submissionId);
+    if (!submission) {
+      throw new SubmissionNotFoundException(submissionId);
+    }
+
+    return SubmissionDetailResponseDto.of({
+      ...submission,
+      studentId: student.id,
+      studentName: student.name,
+      mediaUrl: submission.media ? { video: submission.media.videoUrl, audio: submission.media.audioUrl } : undefined,
+    });
   }
 
   /**

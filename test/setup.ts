@@ -12,7 +12,6 @@ import type { StudentsEntity } from '@src/app/students/entities/students.entity'
 import type { JwtResponse } from '@src/app/auth/auth.dto';
 import { StudentsRepository } from '@src/app/students/repositories/students.repository';
 import { JWTService } from '@src/app/auth/jwt/jwt.service';
-import { LoggingInterceptor } from '@src/common/interceptor/logging.interceptor';
 
 export const setupModule = async (
   modules: Array<Type<any> | DynamicModule | Promise<DynamicModule>>,
@@ -43,7 +42,7 @@ export const setupModule = async (
 
 export const setupApp = async (app: INestApplication) => {
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  // app.useGlobalInterceptors(new LoggingInterceptor());
   setupPipe(app);
   await app.init();
 };

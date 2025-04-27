@@ -16,6 +16,8 @@ import type { StudentsEntity } from '@src/app/students/entities/students.entity'
 import { faker } from '@faker-js/faker';
 import { SubmissionsFixture } from 'test/fixture/submissions.fixture';
 import { Media } from '@src/app/submissions/domain/media';
+import { MediaFixture } from 'test/fixture/media.fixture';
+import { SubmissionMediaRepository } from '@src/app/submissions/repositories/submission-media.repository';
 
 type QueryOption = {
   desc: string;
@@ -39,6 +41,7 @@ describe('[e2e] Submissions', () => {
 
   let submissionsRepository: SubmissionsRepository;
   let submissionLogsRepository: SubmissionLogsRepository;
+  let submissionMediasRepository: SubmissionMediaRepository;
   let studentRepository: StudentsRepository;
 
   beforeAll(async () => {
@@ -63,6 +66,7 @@ describe('[e2e] Submissions', () => {
 
     submissionsRepository = moduleRef.get<SubmissionsRepository>(SubmissionsRepository);
     submissionLogsRepository = moduleRef.get<SubmissionLogsRepository>(SubmissionLogsRepository);
+    submissionMediasRepository = moduleRef.get<SubmissionMediaRepository>(SubmissionMediaRepository);
     studentRepository = moduleRef.get<StudentsRepository>(StudentsRepository);
   });
 
@@ -151,6 +155,7 @@ describe('[e2e] Submissions', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .query(query);
 
+      // then
       expect(response.status).toBe(200);
       expect(response.body.result).toBe('ok');
       expect(Array.isArray(response.body.data)).toBe(true);
@@ -212,6 +217,79 @@ describe('[e2e] Submissions', () => {
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual([]);
       expect(response.body.meta.total).toBe(0);
+    });
+  });
+
+  describe('GET /v1/submissions/:submissionId (detail)', () => {
+    let student: StudentsEntity;
+    let accessToken: string;
+
+    beforeAll(async () => {
+      student = await setupStudent(app);
+      accessToken = await setupJWT(app, student);
+    });
+
+    afterAll(async () => {
+      await studentRepository.delete({});
+    });
+
+    it('상세 조회 - 정상 조회', async () => {
+      // 데이터 세팅
+      const submission = await submissionsRepository.save(
+        SubmissionsFixture.creatSubmissionEntity(student, {
+          highlightSubmitText: faker.lorem.sentence(),
+          feedback: faker.lorem.sentence(),
+          highlights: [faker.lorem.words(3), faker.lorem.words(3)],
+          mediaUrl: Media.of(
+            faker.internet.url(),
+            faker.internet.url(),
+            {
+              format: faker.system.fileExt(),
+              duration: faker.number.int({ min: 60, max: 3600 }),
+              resolution: `${faker.number.int({ min: 720, max: 2160 })}p`,
+              originalFileName: faker.system.fileName(),
+            },
+            faker.number.int({ min: 100, max: 1000 }),
+          ),
+        }),
+      );
+
+      await submissionMediasRepository.save(MediaFixture.createMediaEntity(submission, { ...submission.mediaUrl }));
+
+      // when
+      const response = await request(app.getHttpServer())
+        .get(`/v1/submissions/${submission.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // then
+      expect(response.status).toBe(200);
+      expect(response.body.result).toBe('ok');
+      expect(response.body.data.studentId).toBe(student.id);
+      expect(response.body.data.studentName).toBe(student.name);
+      expect(response.body.data.componentType).toBe(submission.componentType);
+      expect(response.body.data.status).toBe(submission.status);
+      expect(response.body.data.createdDt).toBeDefined();
+      expect(response.body.data.updatedDt).toBeDefined();
+      expect(response.body.data.submitText).toBeDefined();
+      expect(response.body.data.highlightSubmitText).toBeDefined();
+      expect(response.body.data.score).toBe(submission.score);
+      expect(response.body.data.feedback).toBeDefined();
+      expect(Array.isArray(response.body.data.highlights)).toBe(true);
+      expect(response.body.data.mediaUrl).toBeDefined();
+      expect(response.body.data.mediaUrl.video).toBeDefined();
+      expect(response.body.data.mediaUrl.audio).toBeDefined();
+    });
+
+    it('상세 조회 - 존재하지 않는 ID 조회 시 실패', async () => {
+      const invalidId = 99999999;
+
+      const response = await request(app.getHttpServer())
+        .get(`/v1/submissions/${invalidId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200); // 실패여도 status 200
+      expect(response.body.result).toBe('failed');
+      expect(response.body.message).toContain('제출을 찾을 수 없습니다');
     });
   });
 });

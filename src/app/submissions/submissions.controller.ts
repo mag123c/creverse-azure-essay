@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SubmissionsService } from './service/submissions.service';
 import {
   CreateSubmissionsRequestDto,
@@ -6,7 +6,7 @@ import {
   GetSubmissionsRequestDto,
 } from './dto/submissions-request.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { GetSubmissionsResponseDto, SubmissionsResponseDto } from './dto/submissions-response.dto';
+import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from './dto/submissions-response.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UploadedVideo } from '@src/common/pipe/file-validation.pipe';
 import { diskStorage } from 'multer';
@@ -21,13 +21,22 @@ import { Student } from '../students/domain/student';
 export class SubmissionsController {
   constructor(private readonly submissionsService: SubmissionsService) {}
 
-  @ApiOperation({ summary: '제출 결과 조회', description: '학생이 제출한 에세이 결과를 조회합니다.' })
+  @ApiOperation({ summary: '제출 결과 조회' })
   @Get()
   async getSubmissions(
     @JwtDecoded() student: Student,
     @Query() req: GetSubmissionsRequestDto,
   ): Promise<GetSubmissionsResponseDto> {
     return await this.submissionsService.getSubmissions(student, req);
+  }
+
+  @ApiOperation({ summary: '제출 결과 상세 조회' })
+  @Get(':submissionId')
+  async getSubmissionDetail(
+    @JwtDecoded() student: Student,
+    @Param('submissionId') submissionId: number,
+  ): Promise<SubmissionDetailResponseDto> {
+    return await this.submissionsService.getSubmissionDetail(student, submissionId);
   }
 
   @ApiOperation({
@@ -57,7 +66,7 @@ export class SubmissionsController {
     @JwtDecoded() student: Student,
     @Body() req: CreateSubmissionsRequestDto,
     @UploadedVideo() videoFile?: Express.Multer.File,
-  ): Promise<SubmissionsResponseDto> {
+  ): Promise<SubmissionDetailResponseDto> {
     return await this.submissionsService.generateSubmissionFeedback(student, req, videoFile);
   }
 }

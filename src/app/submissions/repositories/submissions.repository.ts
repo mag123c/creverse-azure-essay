@@ -86,4 +86,16 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
 
     return getOffsetPaginatedResult(baseQuery, req.page, req.size);
   }
+
+  /**
+   * 학생의 제출 상세 조회
+   */
+  async findStudentSubmissionDetail(submissionId: number): Promise<SubmissionsEntity | null> {
+    return await this.createQueryBuilder('submission')
+      .innerJoinAndSelect('submission.student', 'student')
+      .leftJoinAndSelect('submission.logs', 'log')
+      .leftJoinAndSelect('submission.media', 'media')
+      .where('submission.id = :submissionId', { submissionId })
+      .getOne();
+  }
 }

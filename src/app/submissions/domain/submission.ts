@@ -1,4 +1,4 @@
-import { SubmissionsResponseDto } from '../dto/submissions-response.dto';
+import { SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
 import type { Evaluation } from './evaluation';
 import type { Media } from './media';
 import type { SubmissionsEntity } from '../entities/submissions.entity';
@@ -76,8 +76,8 @@ export class Submission {
     this.status = SubmissionStatus.FAILED;
   }
 
-  toDto(): SubmissionsResponseDto {
-    return SubmissionsResponseDto.of({
+  toDto(): SubmissionDetailResponseDto {
+    return SubmissionDetailResponseDto.of({
       studentId: this.studentId,
       studentName: this.studentName,
       componentType: this.componentType,

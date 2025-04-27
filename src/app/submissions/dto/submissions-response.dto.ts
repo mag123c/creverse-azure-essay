@@ -7,10 +7,10 @@ import { SubmissionsEntity } from '../entities/submissions.entity';
 
 class MediaResponse {
   @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
-  private video?: string;
+  readonly video?: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/audio.mp3' })
-  private audio?: string;
+  readonly audio?: string;
 
   constructor(video?: string, audio?: string) {
     this.video = video;
@@ -18,7 +18,7 @@ class MediaResponse {
   }
 }
 
-class SubmissionsDetailResponse {
+class SubmissionDetailItem {
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
 
@@ -100,17 +100,17 @@ class SubmissionsDetailResponse {
   }
 }
 
-export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsDetailResponse> {
-  @ApiProperty({ type: SubmissionsDetailResponse })
-  data: SubmissionsDetailResponse;
+export class SubmissionDetailResponseDto extends ApiSuccessResponse<SubmissionDetailItem> {
+  @ApiProperty({ type: SubmissionDetailItem })
+  data: SubmissionDetailItem;
 
-  constructor(data: SubmissionsDetailResponse) {
+  constructor(data: SubmissionDetailItem) {
     super();
     this.data = data;
   }
 
-  static of(data: SubmissionsDetailResponse): SubmissionsResponseDto {
-    return new SubmissionsResponseDto(data);
+  static of(data: SubmissionDetailItem): SubmissionDetailResponseDto {
+    return new SubmissionDetailResponseDto(data);
   }
 }
 
