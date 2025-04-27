@@ -5,6 +5,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { SubmissionsService } from '@src/app/submissions/service/submissions.service';
 import { Job } from 'bullmq';
 import { SubmissionLogAction } from '@src/app/submissions/entities/submission-logs.entity';
+import * as fs from 'fs/promises';
 
 @Processor('submission-evaluation')
 @UseFilters(HttpExceptionFilter)
@@ -20,7 +21,22 @@ export class SubmissionConsumer extends WorkerHost {
 
     this.logger.log(`${submissionId} 의 재평가를 시작합니다.(영상: ${videoPath ? videoPath : '없음'})`);
 
-    await this.submissionsService.runEvaluationJob(submissionId, SubmissionLogAction.RETRY_SUBMISSION, videoPath);
+    try {
+      await this.submissionsService.runEvaluationJob(submissionId, SubmissionLogAction.RETRY_SUBMISSION, videoPath);
+    } catch (e: any) {
+      this.logger.error(`학생 ${submissionId} 평가 실패: ${e.message}`, e.stack);
+      throw e;
+    } finally {
+      // 업로드된 파일 삭제
+      if (videoPath) {
+        try {
+          await fs.unlink(videoPath);
+          this.logger.log(`재평가 후 원본 파일 삭제 완료: ${videoPath}`);
+        } catch (err: any) {
+          this.logger.error(`재평가 후 원본 파일 삭제 실패 (${videoPath}): ${err.message}`);
+        }
+      }
+    }
   }
 
   async onActive(job: Job) {

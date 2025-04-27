@@ -23,6 +23,7 @@ export class SubmissionMediaUploader {
     const start = Date.now();
     let mutedPath: string | undefined;
     let audioPath: string | undefined;
+    let uploadSuccess = false;
 
     try {
       const result = await this.ffmpeg.process(videoPath);
@@ -34,16 +35,38 @@ export class SubmissionMediaUploader {
       const audio = await this.blobStorage.uploadFileFromPath(audioPath, 'audio/mp3');
 
       this.logger.log(`영상 업로드 완료`);
+      uploadSuccess = true;
       submission.setMedia(Media.of(video.sasUrl, audio.sasUrl, meta, Date.now() - start));
     } catch (e: any) {
       submission.setMedia(Media.of('', '', {} as FileMetadata, Date.now() - start));
       this.logger.warn(`영상 처리 실패: ${e.message}`);
     } finally {
-      try {
-        await fs.unlink(videoPath);
-        this.logger.log(`임시 파일 삭제 완료: ${videoPath}`);
-      } catch (err: any) {
-        this.logger.warn(`임시 파일 삭제 실패 (${videoPath}): ${err.message}`);
+      // 변환된 muted, audio 파일은 항상 삭제
+      if (mutedPath) {
+        try {
+          await fs.unlink(mutedPath);
+          this.logger.log(`변환된 음소거 영상 파일 삭제 완료: ${mutedPath}`);
+        } catch (err: any) {
+          this.logger.warn(`변환된 음소거 영상 파일 삭제 실패 (${mutedPath}): ${err.message}`);
+        }
+      }
+      if (audioPath) {
+        try {
+          await fs.unlink(audioPath);
+          this.logger.log(`변환된 오디오 파일 삭제 완료: ${audioPath}`);
+        } catch (err: any) {
+          this.logger.warn(`변환된 오디오 파일 삭제 실패 (${audioPath}): ${err.message}`);
+        }
+      }
+
+      // 원본 파일은 업로드 성공했을 때만 삭제
+      if (uploadSuccess) {
+        try {
+          await fs.unlink(videoPath);
+          this.logger.log(`원본 영상 파일 삭제 완료: ${videoPath}`);
+        } catch (err: any) {
+          this.logger.warn(`원본 영상 파일 삭제 실패 (${videoPath}): ${err.message}`);
+        }
       }
     }
   }

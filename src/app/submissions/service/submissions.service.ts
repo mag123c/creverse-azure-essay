@@ -81,6 +81,11 @@ export class SubmissionsService {
     await this.evaluateSubmission(submissionId, action, videoPath);
   }
 
+  /**
+   * 평가 수행 로직
+   *  - 영상 업로드는 성공/실패 여부를 따지지 않음.
+   *  - 평가 요청은 성공/실패 여부를 따져 예외처리 및 최초라면 큐에 적재.
+   */
   private async evaluateSubmission(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
     const existsSubmission = await this.submissionsRepository.findOneWithRevisionLog(submissionId);
     if (!existsSubmission) {
@@ -119,8 +124,10 @@ export class SubmissionsService {
     } catch (e: any) {
       submission.markAsFailed();
       await this.saveSubmissionResult(existsSubmission, submission, action);
-      // 재평가 요청
-      await this.submissionProducer.enqueueSubmissionEvaluation(submissionId, videoPath);
+      // 최초 평가 실패 시 큐에 적재
+      if (action === SubmissionLogAction.INITIALIZE_SUBMISSION) {
+        await this.submissionProducer.enqueueSubmissionEvaluation(submissionId, videoPath);
+      }
       throw e;
     }
   }

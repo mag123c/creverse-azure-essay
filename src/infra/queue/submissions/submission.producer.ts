@@ -11,11 +11,11 @@ export class SubmissionProducer {
    *
    */
   async enqueueSubmissionEvaluation(submissionId: number, videoPath?: string) {
-    this.logger.log(`${submissionId} 의 평가 요청을 큐에 추가합니다. (영상: ${videoPath ? videoPath : '없음'})`);
+    this.logger.log(`${submissionId} 의 재평가 요청을 큐에 추가합니다. (영상: ${videoPath ? videoPath : '없음'})`);
     await this.submissionQueue.add(
       'evaluate-and-upload',
       { submissionId, videoPath },
-      { jobId: `submission-${submissionId}` },
+      { jobId: `submission-${submissionId}`, delay: 60 * 60 * 3600 }, // 1시간 대기
     );
   }
 
