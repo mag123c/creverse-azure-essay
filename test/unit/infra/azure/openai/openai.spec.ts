@@ -14,6 +14,7 @@ describe('[unit] Azure OpenAI', () => {
 
   let openAIService: OpenAIService;
   beforeAll(async () => {
+    jest.clearAllMocks();
     const moduleRef = await Test.createTestingModule({
       providers: [OpenAIService, { provide: AzureOpenAI, useValue: mockOpeaAIClient }],
     }).compile();
@@ -36,9 +37,9 @@ describe('[unit] Azure OpenAI', () => {
       ],
     });
 
-    const result = await openAIService.evaluate('테스트 에세이');
-    expect(result.score).toBe(85);
-    expect(result.feedback).toContain('잘 작성');
+    const suite = await openAIService.evaluate('테스트 에세이');
+    expect(suite.getScore()).toBe(85);
+    expect(suite.getFeedback()).toContain('잘 작성');
   });
 
   it('잘못된 JSON 응답이면 OpenAIApiException을 던진다', async () => {

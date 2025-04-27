@@ -9,7 +9,7 @@ describe('[unit] Submission', () => {
 
     const submission = Submission.create(1, 'John Doe', componentType, submitText);
 
-    const evaluation = new Evaluation(9, 'Good job!', highlightPhrases);
+    const evaluation = Evaluation.of(9, 'Good job!', highlightPhrases);
     submission.applyEvaluation(evaluation);
 
     const result = submission.toDto().data;
@@ -21,7 +21,7 @@ describe('[unit] Submission', () => {
     const componentType = 'essay';
     const submitText = 'No highlights should be added here.';
     const submission = Submission.create(1, 'Jane Doe', componentType, submitText);
-    submission.applyEvaluation(new Evaluation(5, 'Needs improvement.', []));
+    submission.applyEvaluation(Evaluation.of(5, 'Needs improvement.', []));
 
     const result = submission.toDto().data;
     expect(result.highlightSubmitText).toBe(submitText);

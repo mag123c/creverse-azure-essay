@@ -3,6 +3,7 @@ import { SubmissionEvaluator } from '@src/app/submissions/service/submissions.ev
 import { OpenAIService } from '@src/infra/azure/openai/service/openai.service';
 import { Submission } from '@src/app/submissions/domain/submission';
 import { Evaluation } from '@src/app/submissions/domain/evaluation';
+import { EvaluationFixture } from 'test/fixture/evaluation.fixture';
 
 describe('[unit] SubmissionEvaluator', () => {
   let evaluator: SubmissionEvaluator;
@@ -13,6 +14,7 @@ describe('[unit] SubmissionEvaluator', () => {
   };
 
   beforeAll(async () => {
+    jest.clearAllMocks();
     const moduleRef = await Test.createTestingModule({
       providers: [SubmissionEvaluator, { provide: OpenAIService, useValue: mockOpenAIService }],
     }).compile();
@@ -21,33 +23,22 @@ describe('[unit] SubmissionEvaluator', () => {
     openAIService = moduleRef.get(OpenAIService);
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('Submission을 평가하여 Evaluation을 반환한다.', async () => {
     const submission = Submission.create(1, '홍길동', 'Essay Writing', 'This is a test.');
-    mockOpenAIService.evaluate.mockResolvedValue({
-      score: 90,
-      feedback: 'Good job!',
-      highlights: ['test'],
-    });
+    mockOpenAIService.evaluate.mockResolvedValue(EvaluationFixture.createEvaluation());
 
-    const evaluation = await evaluator.evaluate(submission);
+    await evaluator.evaluate(submission);
+    const evaluation = submission.getEvaluation();
 
     expect(openAIService.evaluate).toHaveBeenCalledWith(submission.getSubmitText());
     expect(evaluation).toBeInstanceOf(Evaluation);
-    expect(evaluation.score).toBe(90);
-    expect(evaluation.feedback).toContain('Good');
+    expect(evaluation?.getScore()).toBe(90);
+    expect(evaluation?.getFeedback()).toContain('Good');
   });
 
   it('학생 이름과 ID를 로그에 기록한다.', async () => {
     const submission = Submission.create(1, '홍길동', 'Essay Writing', 'This is a test.');
-    mockOpenAIService.evaluate.mockResolvedValue({
-      score: 90,
-      feedback: 'Good job!',
-      highlights: ['test'],
-    });
+    mockOpenAIService.evaluate.mockResolvedValue(EvaluationFixture.createEvaluation());
 
     const logSpy = jest.spyOn(evaluator['logger'], 'log');
     await evaluator.evaluate(submission);
