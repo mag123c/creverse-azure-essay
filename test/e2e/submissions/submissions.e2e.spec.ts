@@ -210,7 +210,6 @@ describe('[e2e] Submissions', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(200);
-      console.log(response.body);
       expect(response.body.data).toEqual([]);
       expect(response.body.meta.total).toBe(0);
     });

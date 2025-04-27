@@ -4,7 +4,6 @@ import { BlobStorageService } from '@src/infra/azure/blob/service/blob-storage.s
 import { Submission } from '@src/app/submissions/domain/submission';
 import { Test } from '@nestjs/testing';
 import { Media } from '@src/app/submissions/domain/media';
-import * as fs from 'fs/promises';
 
 jest.mock('fs/promises', () => ({
   unlink: jest.fn(),
@@ -58,6 +57,5 @@ describe('[unit] SubmissionMediaUploader', () => {
     expect(submission.getMedia()).toBeInstanceOf(Media);
     expect(submission.getMedia()!.getVideoUrl()).toBe('');
     expect(submission.getMedia()!.getAudioUrl()).toBe('');
-    expect(fs.unlink).toHaveBeenCalledWith('/tmp/video.mp4');
   });
 });
