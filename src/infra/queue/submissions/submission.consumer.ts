@@ -19,12 +19,13 @@ export class SubmissionConsumer extends WorkerHost {
     const { submissionId, videoPath } = job.data;
     const action =
       job.attemptsMade > 1 ? SubmissionLogAction.RETRY_SUBMISSION : SubmissionLogAction.INITIALIZE_SUBMISSION;
+    const video = action === SubmissionLogAction.RETRY_SUBMISSION ? undefined : videoPath;
 
     this.logger.log(
-      `${submissionId} 의 평가 요청 ${action === SubmissionLogAction.RETRY_SUBMISSION ? '재제출' : '최초 제출'}}을 처리합니다. (영상: ${videoPath ? videoPath : '없음'})`,
+      `${submissionId} 의 평가 요청 ${action === SubmissionLogAction.RETRY_SUBMISSION ? '재제출' : '최초 제출'}을 처리합니다. (영상: ${video ? video : '없음'})`,
     );
 
-    await this.submissionsService.runEvaluationJob(submissionId, action, videoPath);
+    await this.submissionsService.runEvaluationJob(submissionId, action, video);
   }
 
   async onActive(job: Job) {

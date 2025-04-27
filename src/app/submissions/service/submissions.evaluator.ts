@@ -11,6 +11,7 @@ export class SubmissionEvaluator {
 
   async evaluate(submission: Submission): Promise<void> {
     this.logger.log(`학생 ${submission.getStudentName()}(${submission.getStudentId()}) 평가 시작`);
+    throw new Error('TEST');
 
     const start = Date.now();
 

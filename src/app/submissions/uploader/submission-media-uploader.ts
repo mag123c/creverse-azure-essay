@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BlobStorageService } from '@src/infra/azure/blob/service/blob-storage.service';
 import { FileMetadata, Media } from '../domain/media';
 import { FfmpegProcessor } from '@src/infra/processor/ffmpeg.processor';
-import * as fs from 'fs/promises';
 import { Submission } from '../domain/submission';
-
+import * as fs from 'fs/promises';
 @Injectable()
 export class SubmissionMediaUploader {
   private readonly logger = new Logger(SubmissionMediaUploader.name);
@@ -38,18 +37,13 @@ export class SubmissionMediaUploader {
       submission.setMedia(Media.of(video.sasUrl, audio.sasUrl, meta, Date.now() - start));
     } catch (e: any) {
       submission.setMedia(Media.of('', '', {} as FileMetadata, Date.now() - start));
-      this.logger.error(`영상 처리 실패: ${e.message}`, e.stack);
-      throw e;
+      this.logger.warn(`영상 처리 실패: ${e.message}`);
     } finally {
-      // 파일 정리: 원본, muted, audio
-      const pathsToDelete = [videoPath, mutedPath, audioPath].filter((p): p is string => typeof p === 'string');
-      for (const p of pathsToDelete) {
-        try {
-          await fs.unlink(p);
-          this.logger.log(`임시 파일 삭제 완료: ${p}`);
-        } catch (err: any) {
-          this.logger.error(`임시 파일 삭제 실패 (${p}): ${err.message}`, err.stack);
-        }
+      try {
+        await fs.unlink(videoPath);
+        this.logger.log(`임시 파일 삭제 완료: ${videoPath}`);
+      } catch (err: any) {
+        this.logger.warn(`임시 파일 삭제 실패 (${videoPath}): ${err.message}`);
       }
     }
   }

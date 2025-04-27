@@ -4,7 +4,7 @@ import { SubmissionsRepository } from '@src/app/submissions/repositories/submiss
 import { type TestingModule, Test } from '@nestjs/testing';
 import { SubmissionEvaluator } from '@src/app/submissions/service/submissions.evaluator';
 import { SubmissionMediaUploader } from '@src/app/submissions/uploader/submission-media-uploader';
-import type { SubmissionsRequestDto } from '@src/app/submissions/dto/submissions-request.dto';
+import type { CreateSubmissionsRequestDto } from '@src/app/submissions/dto/submissions-request.dto';
 import { StudentFixture } from 'test/fixture/student.fixture';
 import { SubmissionProducer } from '@src/infra/queue/submissions/submission.producer';
 import { SubmissionLogsRepository } from '@src/app/submissions/repositories/submission-logs.repository';
@@ -48,7 +48,7 @@ describe('[unit] SubmissionsService', () => {
 
   it('학생이 이미 동일한 componentType 으로 제출한 이력이 있으면 DuplicateSubmissionException 을 던진다', async () => {
     const student = StudentFixture.createMockStudent();
-    const dto: SubmissionsRequestDto = {
+    const dto: CreateSubmissionsRequestDto = {
       componentType: 'Essay Writing',
       submitText: '테스트 에세이',
     };

@@ -6,6 +6,7 @@ import { Media } from '../domain/media';
 import { StudentsEntity } from '@src/app/students/entities/students.entity';
 import { SubmissionMediaEntity } from './submission-media.entity';
 
+@Index('idx_submissions_student_status_created', ['student', 'status', 'createdDt'])
 @Index('uq_submissions_student_component', ['student', 'componentType'], { unique: true })
 @Index('idx_submissions_status_created', ['status', 'createdDt'])
 @Index('idx_submissions_created', ['createdDt'])
@@ -29,7 +30,7 @@ export class SubmissionsEntity extends DefaultEntity {
   })
   media?: SubmissionMediaEntity;
 
-  @Column({ length: 50 })
+  @Column({ length: 100 })
   componentType!: string;
 
   @Column({ type: 'text' })

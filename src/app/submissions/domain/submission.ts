@@ -21,6 +21,8 @@ export class Submission {
     private evaluation?: Evaluation,
     private media?: Media,
     private highlightSubmitText: string = '',
+    private createdDt?: Date,
+    private updatedDt?: Date,
   ) {}
 
   getId(): number | undefined {
@@ -78,11 +80,16 @@ export class Submission {
     return SubmissionsResponseDto.of({
       studentId: this.studentId,
       studentName: this.studentName,
+      componentType: this.componentType,
+      status: this.status,
       submitText: this.submitText,
+      createdDt: this.createdDt ?? new Date(),
+      updatedDt: this.updatedDt ?? new Date(),
       score: this.evaluation?.getScore(),
       feedback: this.evaluation?.getFeedback(),
       highlights: this.evaluation?.getHighlights(),
       highlightSubmitText: this.highlightSubmitText,
+      mediaUrl: this.media?.toJson(),
     });
   }
 
@@ -100,6 +107,8 @@ export class Submission {
       entity.submitText,
       entity.status,
     );
+    submission.createdDt = entity.createdDt;
+    submission.updatedDt = entity.updatedDt;
     return submission;
   }
 

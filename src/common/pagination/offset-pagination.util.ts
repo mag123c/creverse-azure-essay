@@ -1,7 +1,7 @@
 import type { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
-import type { OffsetPaginateResult } from './pagination.types';
+import type { OffsetPaginateResult } from './pagination.interface';
 
-export function applyOffsetPagination<T extends ObjectLiteral>(
+function applyOffsetPagination<T extends ObjectLiteral>(
   qb: SelectQueryBuilder<T>,
   page: number,
   take: number,
@@ -15,6 +15,7 @@ export async function getOffsetPaginatedResult<T>(
   page: number,
   take: number,
 ): Promise<OffsetPaginateResult<T>> {
+  applyOffsetPagination(qb, page, take);
   const [data, total] = await qb.getManyAndCount();
 
   return {

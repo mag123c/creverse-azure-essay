@@ -8,7 +8,7 @@ export abstract class ApiSuccessResponse<T> {
   @ApiPropertyOptional()
   apiLatency!: number;
   @ApiPropertyOptional()
-  data?: T;
+  data?: T | T[];
 
   constructor() {
     this.result = 'ok';

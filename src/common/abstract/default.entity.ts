@@ -4,9 +4,9 @@ export abstract class DefaultEntity {
   @PrimaryGeneratedColumn('increment', { unsigned: true })
   id!: number;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'timestamptz', precision: 0 })
   readonly createdDt!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ type: 'timestamptz', precision: 0 })
   readonly updatedDt!: Date;
 }

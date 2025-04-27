@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SubmissionsRequestDto } from '../dto/submissions-request.dto';
+import { CreateSubmissionsRequestDto, GetSubmissionsRequestDto } from '../dto/submissions-request.dto';
 import { Submission, SubmissionStatus } from '../domain/submission';
 import { SubmissionEvaluator } from './submissions.evaluator';
 import { SubmissionsRepository } from '../repositories/submissions.repository';
@@ -12,6 +12,8 @@ import { SubmissionLogsRepository } from '../repositories/submission-logs.reposi
 import { SubmissionMediaRepository } from '../repositories/submission-media.repository';
 import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
+import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
+import { GetSubmissionsResponseDto } from '../dto/submissions-response.dto';
 
 @Injectable()
 export class SubmissionsService {
@@ -26,6 +28,21 @@ export class SubmissionsService {
   ) {}
 
   /**
+   * @API GET /v1/submissions - 학생 에세이 제출 내역 조회
+   * @description
+   *  학생이 제출한 에세이의 제출 내역을 조회합니다.
+   *    - 필터: 상태
+   *    - 검색: 학생 ID(PK), 학생 이름
+   *    - 정렬: 생성일자 DESC
+   */
+  async getSubmissions(student: Student, req: GetSubmissionsRequestDto): Promise<GetSubmissionsResponseDto> {
+    const submissionsWithPagination: OffsetPaginateResult<SubmissionsEntity> =
+      await this.submissionsRepository.findStudentSubmissionsWithPagination(student.id, { ...req });
+
+    return GetSubmissionsResponseDto.of(submissionsWithPagination.data, submissionsWithPagination.meta);
+  }
+
+  /**
    * @API POST /v1/submissions - 학생 에세이 제출 (AI 평가 요청)
    * @description
    *   학생의 영어 에세이를 제출하여 AI 평가를 요청합니다.
@@ -36,7 +53,11 @@ export class SubmissionsService {
    *
    */
   @Transactional()
-  async generateSubmissionFeedback(student: Student, req: SubmissionsRequestDto, videoFile?: Express.Multer.File) {
+  async generateSubmissionFeedback(
+    student: Student,
+    req: CreateSubmissionsRequestDto,
+    videoFile?: Express.Multer.File,
+  ) {
     // 중복된 컴포넌트 타입의 제출이 있다면 예외처리
     await this.isDuplicateSubmission(student.id, req.componentType);
     if (await this.isDuplicateSubmission(student.id, req.componentType)) {
@@ -103,7 +124,7 @@ export class SubmissionsService {
    * 평가 최초 생성
    */
   @Transactional()
-  private async createPending(student: Student, dto: SubmissionsRequestDto): Promise<SubmissionsEntity> {
+  private async createPending(student: Student, dto: CreateSubmissionsRequestDto): Promise<SubmissionsEntity> {
     const submissionEntity = await this.submissionsRepository.save(
       this.submissionsRepository.create({
         student: { id: student.id },

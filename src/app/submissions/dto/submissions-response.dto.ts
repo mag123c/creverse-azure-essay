@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ApiSuccessResponse } from '@src/common/response/api-response.dto';
+import { PaginationMeta } from '@src/common/pagination/pagination.interface';
+import { PaginationMetaDto } from '@src/common/pagination/meta.dto';
+import { SubmissionStatus } from '../domain/submission';
+import { SubmissionsEntity } from '../entities/submissions.entity';
 
 class MediaResponse {
   @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
@@ -7,6 +11,11 @@ class MediaResponse {
 
   @ApiPropertyOptional({ example: 'https://example.com/audio.mp3' })
   private audio?: string;
+
+  constructor(video?: string, audio?: string) {
+    this.video = video;
+    this.audio = audio;
+  }
 }
 
 class SubmissionsResponse {
@@ -16,11 +25,23 @@ class SubmissionsResponse {
   @ApiProperty({ description: '학생 이름', example: '홍길동' })
   readonly studentName!: string;
 
+  @ApiProperty({ description: '제출한 컴포넌트 타입', example: 'Essay' })
+  readonly componentType!: string;
+
+  @ApiProperty({ description: '제출 상태', enum: SubmissionStatus, example: 'EVALUATING' })
+  readonly status!: SubmissionStatus;
+
   @ApiPropertyOptional({
     description: '평가 시 보냈던 텍스트',
     example: 'Hello, this is a test video. I hope you enjoy it.',
   })
   readonly submitText!: string;
+
+  @ApiProperty({ description: '제출 일자', example: '2025-01-01T12:00:00Z' })
+  readonly createdDt!: Date;
+
+  @ApiProperty({ description: '업데이트 일자', example: '2025-01-01T12:00:00Z' })
+  readonly updatedDt!: Date;
 
   @ApiPropertyOptional({ description: '점수(0 ~ 10)', example: 8 })
   readonly score?: number;
@@ -49,6 +70,34 @@ class SubmissionsResponse {
 
   @ApiPropertyOptional({ description: '영상을 보냈을 경우 영상에 대한 영상, 음성 분리 경로 정보', type: MediaResponse })
   readonly mediaUrl?: MediaResponse;
+
+  constructor(data: {
+    studentId: number;
+    studentName: string;
+    componentType: string;
+    status: SubmissionStatus;
+    submitText: string;
+    createdDt: Date;
+    updatedDt: Date;
+    score?: number;
+    feedback?: string;
+    highlights?: string[];
+    highlightSubmitText?: string;
+    mediaUrl?: MediaResponse;
+  }) {
+    this.studentId = data.studentId;
+    this.studentName = data.studentName;
+    this.componentType = data.componentType;
+    this.status = data.status;
+    this.submitText = data.submitText;
+    this.createdDt = data.createdDt;
+    this.updatedDt = data.updatedDt;
+    this.score = data.score;
+    this.feedback = data.feedback;
+    this.highlights = data.highlights;
+    this.highlightSubmitText = data.highlightSubmitText;
+    this.mediaUrl = data.mediaUrl;
+  }
 }
 
 export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsResponse> {
@@ -62,5 +111,45 @@ export class SubmissionsResponseDto extends ApiSuccessResponse<SubmissionsRespon
 
   static of(data: SubmissionsResponse): SubmissionsResponseDto {
     return new SubmissionsResponseDto(data);
+  }
+}
+
+/**
+ * @GET /v1/submissions 응답 DTO
+ */
+export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionsResponse> {
+  @ApiProperty({ type: () => SubmissionsResponseDto, isArray: true })
+  data: SubmissionsResponse[];
+
+  @ApiProperty({ type: PaginationMetaDto })
+  meta: PaginationMeta;
+
+  constructor(submissions: SubmissionsResponse[], meta: PaginationMeta) {
+    super();
+    this.data = submissions;
+    this.meta = meta;
+  }
+
+  static of(submissionsEntity: SubmissionsEntity[], meta: PaginationMeta): GetSubmissionsResponseDto {
+    const submissions = submissionsEntity.map(
+      (submission) =>
+        new SubmissionsResponse({
+          studentId: submission.student.id,
+          studentName: submission.student.name,
+          componentType: submission.componentType,
+          status: submission.status,
+          submitText: submission.submitText,
+          createdDt: submission.createdDt,
+          updatedDt: submission.updatedDt,
+          score: submission.score,
+          feedback: submission.feedback,
+          highlights: submission.highlights,
+          highlightSubmitText: submission.highlightSubmitText,
+          mediaUrl: submission.media
+            ? new MediaResponse(submission.media.videoUrl, submission.media.audioUrl)
+            : undefined,
+        }),
+    );
+    return new GetSubmissionsResponseDto(submissions, meta);
   }
 }
