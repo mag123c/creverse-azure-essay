@@ -49,13 +49,15 @@ describe('[unit] SubmissionMediaUploader', () => {
     expect(mockBlob.uploadFileFromPath).toHaveBeenCalled();
   });
 
-  it('ffmpeg 처리 실패 시 빈 Media를 설정하고 예외를 던진다.', async () => {
+  it('ffmpeg 처리 실패 시 빈 Media를 설정하고 정상 종료한다.', async () => {
     mockFfmpeg.process.mockRejectedValue(new Error('ffmpeg error'));
     const submission = Submission.create(1, '홍길동', 'essay', 'submit');
 
-    await expect(uploader.upload(submission, '/tmp/video.mp4')).rejects.toThrow('ffmpeg error');
+    await uploader.upload(submission, '/tmp/video.mp4');
+
     expect(submission.getMedia()).toBeInstanceOf(Media);
     expect(submission.getMedia()!.getVideoUrl()).toBe('');
-    expect(fs.unlink).toHaveBeenCalled();
+    expect(submission.getMedia()!.getAudioUrl()).toBe('');
+    expect(fs.unlink).toHaveBeenCalledWith('/tmp/video.mp4');
   });
 });
