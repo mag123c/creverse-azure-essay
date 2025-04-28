@@ -1,7 +1,7 @@
 import { Entity, Column, Index, PrimaryColumn } from 'typeorm';
 import { DefaultOmitUpdateDtEntity } from '@src/common/abstract/default.entity';
 
-@Entity('submission_stats_monthly')
+@Entity('stats_monthly')
 @Index(['periodStart'], { unique: true })
 export class MonthlyStatsEntity extends DefaultOmitUpdateDtEntity {
   @PrimaryColumn({ type: 'date' })

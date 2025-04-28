@@ -18,7 +18,6 @@
     "migration:generate:dev": "cross-env NODE_ENV=dev yarn typeorm migration:generate ./src/infra/database/migrations/Migration",
     "migration:run:dev": "cross-env NODE_ENV=dev yarn typeorm migration:run",
     "migration:revert:dev": "cross-env NODE_ENV=dev yarn typeorm migration:revert",
-    "schema:generate:test": "cross-env NODE_ENV=local ts-node ./src/infra/database/helpers/schema.generate",
     "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles --forceExit --passWithNoTests",
     "test:cov": "jest --runInBand --detectOpenHandles --forceExit --passWithNoTests --coverage",
     "test:e2e": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles --forceExit --testRegex='.*\\.e2e.spec\\.ts$'",

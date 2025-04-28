@@ -5,10 +5,10 @@ export abstract class DefaultEntity {
   id!: number;
 
   @CreateDateColumn({ type: 'timestamptz', precision: 0 })
-  readonly createdDt!: Date;
+  createdDt!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', precision: 0 })
-  readonly updatedDt!: Date;
+  updatedDt!: Date;
 }
 
 export abstract class DefaultOmitUpdateDtEntity {
@@ -16,5 +16,5 @@ export abstract class DefaultOmitUpdateDtEntity {
   id!: number;
 
   @CreateDateColumn({ type: 'timestamptz', precision: 0 })
-  readonly createdDt!: Date;
+  createdDt!: Date;
 }

@@ -1,7 +1,7 @@
 import { DefaultOmitUpdateDtEntity } from '@src/common/abstract/default.entity';
 import { Entity, Column, Index, PrimaryColumn } from 'typeorm';
 
-@Entity('submission_stats_weekly')
+@Entity('stats_weekly')
 @Index(['periodStart'], { unique: true })
 export class WeeklyStatsEntity extends DefaultOmitUpdateDtEntity {
   @PrimaryColumn({ type: 'date' })

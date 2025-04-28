@@ -30,6 +30,9 @@ export class SubmissionsFixture {
     entity.action = partial?.action ?? SubmissionLogAction.INITIALIZE_SUBMISSION;
     entity.status = partial?.status ?? submission.status;
     entity.latency = partial?.latency ?? 0;
+    if (partial?.createdDt) {
+      (entity as any).createdDt = partial.createdDt;
+    }
     return entity;
   }
 }

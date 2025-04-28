@@ -317,10 +317,15 @@ export class SubmissionsService {
   }
 
   /**
-   * 기간별 총, 성공, 실패 통계
+   * 기간별 총, 성공, 실패 통계 (일단 최초 제출만)
+   * 재평가 (REVISION)은 재평가가 제출과 1:N으로 들어가므로 재평가 자체가 이력이 됨.
    */
   async computeEvaluationStatusByDate(startDate: string, endDate: string): Promise<EvaluationStats> {
-    const result = await this.submissionsRepository.computeEvaluationStatusByDate(startDate, endDate);
+    const result = await this.submissionLogsRepository.computeSubmissionStatusByDateWithAction(
+      startDate,
+      endDate,
+      SubmissionLogAction.INITIALIZE_SUBMISSION,
+    );
     return {
       totalCount: Number(result?.totalCount ?? 0),
       successCount: Number(result?.successCount ?? 0),
