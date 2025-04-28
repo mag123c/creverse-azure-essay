@@ -8,7 +8,7 @@ export class ServerBootstrap {
 
   constructor(private readonly app: INestApplication) {
     this.logger = new Logger('ServerBootstrap');
-    this.port = process.env.PORT || 5555;
+    this.port = process.env.PORT ?? 11223;
     this.setupKeepAlive();
   }
 
