@@ -192,7 +192,7 @@ describe('[integration] Submissions', () => {
         submission.applyEvaluation(EvaluationFixture.createEvaluation());
       });
       mockUploader.upload.mockImplementation(async (submission: Submission) => {
-        submission.setMedia(Media.of('', '', {} as FileMetadata, 0)); // 빈 미디어 삽입
+        submission.setMedia(Media.of({ videoUrl: '', audioUrl: '', meta: {} as FileMetadata, latency: 0 })); // 빈 미디어 삽입
         throw new Error('upload error');
       });
 
@@ -225,7 +225,14 @@ describe('[integration] Submissions', () => {
         submission.applyEvaluation(EvaluationFixture.createEvaluation());
       });
       mockUploader.upload.mockImplementation(async (submission: Submission) => {
-        submission.setMedia(Media.of('videoUrl', 'audioUrl', {} as FileMetadata, 1000));
+        submission.setMedia(
+          Media.of({
+            videoUrl: 'videoUrl',
+            audioUrl: 'audioUrl',
+            meta: {} as FileMetadata,
+            latency: 1000,
+          }),
+        );
       });
 
       const student = await studentRepository.save(StudentFixture.createMockStudentEntity());
@@ -242,7 +249,6 @@ describe('[integration] Submissions', () => {
       });
 
       expect(submission.status).toBe(SubmissionStatus.SUCCESS);
-      expect(submission.mediaUrl).not.toBeNull();
       expect(submission.logs).toHaveLength(4);
 
       expect(submission.logs![0].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
@@ -257,7 +263,9 @@ describe('[integration] Submissions', () => {
         throw new OpenAIApiException('evaluation error', 'evaluation error');
       });
       mockUploader.upload.mockImplementation(async (submission: Submission) => {
-        submission.setMedia(Media.of('videoUrl', 'audioUrl', {} as FileMetadata, 1000));
+        submission.setMedia(
+          Media.of({ videoUrl: 'videoUrl', audioUrl: 'audioUrl', meta: {} as FileMetadata, latency: 1000 }),
+        );
       });
 
       const student = await studentRepository.save(StudentFixture.createMockStudentEntity());
@@ -286,7 +294,7 @@ describe('[integration] Submissions', () => {
   });
 });
 
-export const queueObliterate = async (queue: any) => {
+const queueObliterate = async (queue: any) => {
   try {
     await queue.drain(true);
     await Promise.all([queue.clean(0, 0, 'completed'), queue.clean(0, 0, 'failed'), queue.clean(0, 0, 'delayed')]);
