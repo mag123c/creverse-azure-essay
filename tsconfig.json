@@ -9,7 +9,7 @@
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,
     "strict": true,
-    "types": ["reflect-metadata", "jest", "multer", "node"],
+    "types": ["reflect-metadata", "jest", "multer", "node", "uuid"],
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
