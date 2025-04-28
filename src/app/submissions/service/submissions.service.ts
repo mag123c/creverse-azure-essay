@@ -19,6 +19,7 @@ import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
+import { RevisionDetailItem } from '@src/app/revisions/dto/revisions-response.dto';
 
 @Injectable()
 export class SubmissionsService {
@@ -64,6 +65,7 @@ export class SubmissionsService {
       studentId: student.id,
       studentName: student.name,
       mediaUrl: submission.media ? { video: submission.media.videoUrl, audio: submission.media.audioUrl } : undefined,
+      revisions: submission.revisions?.map((revision) => RevisionDetailItem.of(revision)),
     });
   }
 

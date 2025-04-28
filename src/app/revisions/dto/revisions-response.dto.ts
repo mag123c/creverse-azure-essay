@@ -183,6 +183,25 @@ export class RevisionDetailItem implements RevisionDetail {
     this.highlightSubmitText = data.highlightSubmitText;
     this.mediaUrl = data.mediaUrl;
   }
+  static of(revision: RevisionsEntity): RevisionDetailItem {
+    return new RevisionDetailItem({
+      id: revision.id,
+      submissionId: revision.submission.id,
+      studentId: revision.submission.student.id,
+      studentName: revision.submission.student.name,
+      componentType: revision.componentType,
+      status: revision.status,
+      submitText: revision.submitText,
+      createdDt: revision.createdDt,
+      score: revision.score,
+      feedback: revision.feedback,
+      highlights: revision.highlights,
+      highlightSubmitText: revision.highlightSubmitText,
+      mediaUrl: revision.submission.media
+        ? { video: revision.submission.media.videoUrl, audio: revision.submission.media.audioUrl }
+        : undefined,
+    });
+  }
 }
 
 export class RevisionDetailResponseDto extends ApiSuccessResponse<RevisionDetailItem> {

@@ -93,6 +93,7 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
       .innerJoinAndSelect('submission.student', 'student')
       .leftJoinAndSelect('submission.logs', 'log')
       .leftJoinAndSelect('submission.media', 'media')
+      .leftJoinAndSelect('submission.revisions', 'revisions')
       .where('submission.id = :submissionId', { submissionId })
       .getOne();
   }

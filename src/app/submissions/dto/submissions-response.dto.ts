@@ -4,6 +4,7 @@ import { PaginationMeta } from '@src/common/pagination/pagination.interface';
 import { PaginationMetaDto } from '@src/common/pagination/meta.dto';
 import { SubmissionStatus } from '../domain/submission';
 import { SubmissionsEntity } from '../entities/submissions.entity';
+import { RevisionDetailItem } from '@src/app/revisions/dto/revisions-response.dto';
 
 export interface SubmissionList {
   id: number;
@@ -173,6 +174,9 @@ export class SubmissionDetailItem implements SubmissionDetail {
   @ApiPropertyOptional({ description: '영상을 보냈을 경우 영상에 대한 영상, 음성 분리 경로 정보', type: MediaItem })
   readonly mediaUrl?: MediaItem;
 
+  @ApiPropertyOptional({ description: '수동 재평가(REVISION) 정보', type: RevisionDetailItem, isArray: true })
+  readonly revisions?: RevisionDetailItem[];
+
   constructor(data: {
     id: number;
     studentId: number;
@@ -187,6 +191,7 @@ export class SubmissionDetailItem implements SubmissionDetail {
     highlights?: string[];
     highlightSubmitText?: string;
     mediaUrl?: MediaItem;
+    revisions?: RevisionDetailItem[];
   }) {
     this.id = data.id;
     this.studentId = data.studentId;
@@ -201,6 +206,7 @@ export class SubmissionDetailItem implements SubmissionDetail {
     this.highlights = data.highlights;
     this.highlightSubmitText = data.highlightSubmitText;
     this.mediaUrl = data.mediaUrl;
+    this.revisions = data.revisions;
   }
 }
 
