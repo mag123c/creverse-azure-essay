@@ -11,3 +11,9 @@ export class JwtUnauthorizedException extends BaseException {
     super(401, '인증되지 않은 요청입니다.');
   }
 }
+
+export class StudentNotFoundException extends BaseException {
+  constructor() {
+    super(404, '학생을 찾을 수 없습니다.');
+  }
+}

@@ -62,6 +62,9 @@ describe('[integration] Submissions', () => {
     submissionsRepository = moduleRef.get<SubmissionsRepository>(SubmissionsRepository);
     submissionLogsRepository = moduleRef.get<SubmissionLogsRepository>(SubmissionLogsRepository);
     studentRepository = moduleRef.get<StudentsRepository>(StudentsRepository);
+
+    const queue = submissionProducer['submissionQueue'];
+    await queueObliterate(queue);
   });
 
   afterEach(async () => {
@@ -71,14 +74,7 @@ describe('[integration] Submissions', () => {
     jest.clearAllMocks();
 
     const queue = submissionProducer['submissionQueue'];
-
-    if (queue) {
-      try {
-        await queue.drain(true);
-        await Promise.all([queue.clean(0, 0, 'completed'), queue.clean(0, 0, 'failed'), queue.clean(0, 0, 'delayed')]);
-        await queue.obliterate({ force: true }); // 워커에 작업이 남아있을 경우 백그라운드 에러(Unhandled Error)가 발생할 수 있음
-      } catch {}
-    }
+    await queueObliterate(queue);
   });
 
   afterAll(async () => {
@@ -287,3 +283,11 @@ describe('[integration] Submissions', () => {
     });
   });
 });
+
+export const queueObliterate = async (queue: any) => {
+  try {
+    await queue.drain(true);
+    await Promise.all([queue.clean(0, 0, 'completed'), queue.clean(0, 0, 'failed'), queue.clean(0, 0, 'delayed')]);
+    await queue.obliterate({ force: true }); // 워커에 작업이 남아있을 경우 백그라운드 에러(Unhandled Error)가 발생할 수 있음
+  } catch {}
+};

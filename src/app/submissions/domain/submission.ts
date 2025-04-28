@@ -78,6 +78,7 @@ export class Submission {
 
   toDto(): SubmissionDetailResponseDto {
     return SubmissionDetailResponseDto.of({
+      id: this.id ?? 0,
       studentId: this.studentId,
       studentName: this.studentName,
       componentType: this.componentType,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreateSubmissionsRequestDto, GetSubmissionsRequestDto } from '../dto/submissions-request.dto';
 import { Submission, SubmissionStatus } from '../domain/submission';
 import { SubmissionEvaluator } from './submissions.evaluator';
@@ -19,9 +19,12 @@ import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
+import * as fs from 'fs/promises';
 
 @Injectable()
 export class SubmissionsService {
+  private readonly logger = new Logger(SubmissionsService.name);
+
   constructor(
     private readonly evaluator: SubmissionEvaluator,
     private readonly uploader: SubmissionMediaUploader,
@@ -76,12 +79,13 @@ export class SubmissionsService {
    *   - 평가 실패 시 영상 처리 및 평가 요청이 메세지 큐에 등록됩니다.
    *
    */
-  @Transactional()
   async generateSubmissionFeedback(
     student: Student,
     req: CreateSubmissionsRequestDto,
     videoFile?: Express.Multer.File,
   ) {
+    this.logger.log(`학생 ${student.id} - 컴포넌트 ${req.componentType} 제출 요청`);
+
     // 중복된 컴포넌트 타입의 제출이 있다면 예외처리
     await this.isDuplicateSubmission(student.id, req.componentType);
     if (await this.isDuplicateSubmission(student.id, req.componentType)) {
@@ -106,6 +110,8 @@ export class SubmissionsService {
    *  - 평가 요청은 성공/실패 여부를 따져 예외처리 및 최초라면 큐에 적재.
    */
   private async evaluateSubmission(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
+    this.logger.log(`제출 ID ${submissionId} - 평가 시작 (Action: ${action})`);
+
     const existsSubmission = await this.submissionsRepository.findOneWithRevisionLog(submissionId);
     if (!existsSubmission) {
       throw new SubmissionNotFoundException(submissionId);
@@ -138,9 +144,16 @@ export class SubmissionsService {
         throw evaluate.reason;
       }
 
+      // 평가 성공했으면 파일 삭제
+      if (videoPath) {
+        await this.tryDelete(videoPath);
+      }
+
       await this.saveSubmissionResult(existsSubmission, submission, action);
       return submission.toDto();
     } catch (e: any) {
+      this.logger.error(`제출 ID ${submissionId} 평가 실패: ${e.message}`, e.stack);
+
       submission.markAsFailed();
       await this.saveSubmissionResult(existsSubmission, submission, action);
       // 최초 평가 실패 시 큐에 적재
@@ -278,5 +291,17 @@ export class SubmissionsService {
       latency,
       submission: submissionEntity,
     });
+  }
+
+  /**
+   * 파일 삭제
+   */
+  private async tryDelete(path: string) {
+    try {
+      await fs.unlink(path);
+      this.logger.log(`파일 삭제 완료: ${path}`);
+    } catch (e: any) {
+      this.logger.warn(`파일 삭제 실패 (${path}): ${e.message}`);
+    }
   }
 }

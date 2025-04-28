@@ -9,10 +9,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from './dto/submissions-response.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UploadedVideo } from '@src/common/pipe/file-validation.pipe';
-import { diskStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { JwtDecoded } from '@src/common/decorator/jwt.decorator';
 import { Student } from '../students/domain/student';
+import { multerStorage } from '@src/infra/multer/multer.storage';
 
 @ApiBearerAuth('accessToken')
 @UseGuards(JwtAuthGuard)
@@ -51,14 +51,7 @@ export class SubmissionsController {
   @ApiConsumes('application/json')
   @UseInterceptors(
     FileInterceptor('videoFile', {
-      // 임시 저장
-      storage: diskStorage({
-        destination: './tmp',
-        filename: (_, file, cb) => {
-          const unique = `${Date.now()}-${file.originalname}`;
-          cb(null, unique);
-        },
-      }),
+      storage: multerStorage,
     }),
   )
   @Post()

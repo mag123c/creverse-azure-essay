@@ -19,6 +19,9 @@ class MediaResponse {
 }
 
 class SubmissionDetailItem {
+  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+  readonly id!: number;
+
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
 
@@ -72,6 +75,7 @@ class SubmissionDetailItem {
   readonly mediaUrl?: MediaResponse;
 
   constructor(data: {
+    id: number;
     studentId: number;
     studentName: string;
     componentType: string;
@@ -85,6 +89,7 @@ class SubmissionDetailItem {
     highlightSubmitText?: string;
     mediaUrl?: MediaResponse;
   }) {
+    this.id = data.id;
     this.studentId = data.studentId;
     this.studentName = data.studentName;
     this.componentType = data.componentType;
@@ -115,6 +120,9 @@ export class SubmissionDetailResponseDto extends ApiSuccessResponse<SubmissionDe
 }
 
 class SubmissionListItem {
+  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+  readonly id!: number;
+
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
 
@@ -137,6 +145,7 @@ class SubmissionListItem {
   readonly score?: number;
 
   constructor(data: {
+    id: number;
     studentId: number;
     studentName: string;
     componentType: string;
@@ -145,6 +154,7 @@ class SubmissionListItem {
     updatedDt: Date;
     score?: number;
   }) {
+    this.id = data.id;
     this.studentId = data.studentId;
     this.studentName = data.studentName;
     this.componentType = data.componentType;
@@ -175,6 +185,7 @@ export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionList
     const submissions = submissionsEntity.map(
       (submission) =>
         new SubmissionListItem({
+          id: submission.id,
           studentId: submission.student.id,
           studentName: submission.student.name,
           componentType: submission.componentType,
