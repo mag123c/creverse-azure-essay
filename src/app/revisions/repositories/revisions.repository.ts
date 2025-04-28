@@ -4,6 +4,7 @@ import { RevisionsEntity } from '../entities/revisions.entity';
 import { SubmissionStatus } from '@src/app/submissions/domain/submission';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { getOffsetPaginatedResult } from '@src/common/pagination/offset-pagination.util';
+import { EvaluationStats } from '@src/app/stats/interface/stats.interface';
 
 @Injectable()
 export class RevisionsRepository extends Repository<RevisionsEntity> {
@@ -69,5 +70,18 @@ export class RevisionsRepository extends Repository<RevisionsEntity> {
       .leftJoinAndSelect('submission.media', 'media')
       .where('revisions.id = :revisionId', { revisionId })
       .getOne();
+  }
+
+  /**
+   * 통계용
+   */
+  async computeEvaluationStatusByDate(startDate: string, endDate: string): Promise<EvaluationStats | undefined> {
+    return await this.createQueryBuilder('revisions')
+      .select('COUNT(*)', 'totalCount')
+      .addSelect(`SUM(CASE WHEN revisions.status = 'SUCCESS' THEN 1 ELSE 0 END)`, 'successCount')
+      .addSelect(`SUM(CASE WHEN revisions.status = 'FAILED' THEN 1 ELSE 0 END)`, 'failedCount')
+      .where('revisions.createdDt >= :startDate', { startDate: `${startDate} 00:00:00` })
+      .andWhere('revisions.createdDt <= :endDate', { endDate: `${endDate} 23:59:59` })
+      .getRawOne<EvaluationStats>();
   }
 }

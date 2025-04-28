@@ -13,6 +13,7 @@ import { OffsetPaginateResult } from '@src/common/pagination/pagination.interfac
 import { SubmissionStatus } from '@src/app/submissions/domain/submission';
 import { AlreadyEvaluatingException, RevisionsNotFoundException } from '../exception/revisions.exception';
 import { Transactional } from 'typeorm-transactional';
+import { EvaluationStats } from '@src/app/stats/interface/stats.interface';
 
 @Injectable()
 export class RevisionsService {
@@ -120,5 +121,17 @@ export class RevisionsService {
       feedback: revisionResult.feedback,
       highlights: revisionResult.highlights,
     });
+  }
+
+  /**
+   * 재평가에 대한 총 통계
+   */
+  async computeEvaluationStatusByDate(startDate: string, endDate: string): Promise<EvaluationStats> {
+    const result = await this.revisionsRepository.computeEvaluationStatusByDate(startDate, endDate);
+    return {
+      totalCount: Number(result?.totalCount ?? 0),
+      successCount: Number(result?.successCount ?? 0),
+      failedCount: Number(result?.failedCount ?? 0),
+    };
   }
 }

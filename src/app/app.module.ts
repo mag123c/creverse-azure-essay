@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
 import { RevisionsQueueModule } from '@src/infra/queue/revisions/revision-queue.module';
 import { RevisionsModule } from './revisions/revisions.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { RevisionsModule } from './revisions/revisions.module';
     OpenAIModule,
     SubmissionQueueModule,
     RevisionsQueueModule,
+    StatsModule,
 
     // Domain
     AuthModule,

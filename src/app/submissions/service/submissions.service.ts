@@ -20,6 +20,7 @@ import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
 import { RevisionDetailItem } from '@src/app/revisions/dto/revisions-response.dto';
+import { EvaluationStats } from '@src/app/stats/interface/stats.interface';
 
 @Injectable()
 export class SubmissionsService {
@@ -313,5 +314,17 @@ export class SubmissionsService {
       throw new SubmissionNotFoundException(submissionId);
     }
     return submission;
+  }
+
+  /**
+   * 기간별 총, 성공, 실패 통계
+   */
+  async computeEvaluationStatusByDate(startDate: string, endDate: string): Promise<EvaluationStats> {
+    const result = await this.submissionsRepository.computeEvaluationStatusByDate(startDate, endDate);
+    return {
+      totalCount: Number(result?.totalCount ?? 0),
+      successCount: Number(result?.successCount ?? 0),
+      failedCount: Number(result?.failedCount ?? 0),
+    };
   }
 }

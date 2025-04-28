@@ -5,6 +5,7 @@ import { SubmissionLogAction } from '../entities/submission-logs.entity';
 import { SubmissionStatus } from '../domain/submission';
 import { getOffsetPaginatedResult } from '@src/common/pagination/offset-pagination.util';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
+import { EvaluationStats } from '@src/app/stats/interface/stats.interface';
 
 @Injectable()
 export class SubmissionsRepository extends Repository<SubmissionsEntity> {
@@ -96,5 +97,18 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
       .leftJoinAndSelect('submission.revisions', 'revisions')
       .where('submission.id = :submissionId', { submissionId })
       .getOne();
+  }
+
+  /**
+   * 통계용
+   */
+  async computeEvaluationStatusByDate(startDate: string, endDate: string): Promise<EvaluationStats | undefined> {
+    return await this.createQueryBuilder('submission')
+      .select('COUNT(*)', 'totalCount')
+      .addSelect(`SUM(CASE WHEN submission.status = 'SUCCESS' THEN 1 ELSE 0 END)`, 'successCount')
+      .addSelect(`SUM(CASE WHEN submission.status = 'FAILED' THEN 1 ELSE 0 END)`, 'failedCount')
+      .where('submission.createdDt >= :startDate', { startDate: `${startDate} 00:00:00` })
+      .andWhere('submission.createdDt <= :endDate', { endDate: `${endDate} 23:59:59` })
+      .getRawOne<EvaluationStats>();
   }
 }

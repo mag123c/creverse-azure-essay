@@ -3,6 +3,7 @@ import { SubmissionsEntity } from '@src/app/submissions/entities/submissions.ent
 import { DefaultOmitUpdateDtEntity } from '@src/common/abstract/default.entity';
 import { ManyToOne, JoinColumn, Column, Index, Entity } from 'typeorm';
 
+@Index('idx_revisions_created', ['createdDt'])
 @Entity('revisions')
 export class RevisionsEntity extends DefaultOmitUpdateDtEntity {
   @Index('idx_revisions_submission', ['submission'])

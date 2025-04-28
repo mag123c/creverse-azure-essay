@@ -10,6 +10,7 @@ export enum SubmissionLogAction {
   MEDIA_UPLOAD = 'MEDIA_UPLOAD', // 미디어 업로드 시
 }
 
+@Index('idx_submission_logs_createddt_action', ['createdDt', 'action'])
 @Entity('submission_logs')
 export class SubmissionLogsEntity extends DefaultEntity {
   @Index('idx_submission_logs_submission_id')
