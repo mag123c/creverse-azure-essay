@@ -17,6 +17,9 @@ import { faker } from '@faker-js/faker';
 import { SubmissionsFixture } from 'test/fixture/submissions.fixture';
 import { MediaFixture } from 'test/fixture/media.fixture';
 import { SubmissionMediaRepository } from '@src/app/submissions/repositories/submission-media.repository';
+import { RevisionsFixture } from 'test/fixture/revisions.fixture';
+import { RevisionsModule } from '@src/app/revisions/revisions.module';
+import { RevisionsRepository } from '@src/app/revisions/repositories/revisions.repository';
 
 type QueryOption = {
   desc: string;
@@ -42,13 +45,14 @@ describe('[e2e] Submissions', () => {
   let submissionLogsRepository: SubmissionLogsRepository;
   let submissionMediasRepository: SubmissionMediaRepository;
   let studentRepository: StudentsRepository;
+  let revisionsRepository: RevisionsRepository;
 
   let student: StudentsEntity;
   let accessToken: string;
 
   beforeAll(async () => {
     const moduleRef = await setupModule(
-      [SubmissionsModule, CustomDatabaseModule, AuthModule, SubmissionQueueModule, StudentsModule],
+      [SubmissionsModule, RevisionsModule, StudentsModule, CustomDatabaseModule, AuthModule, SubmissionQueueModule],
       [],
       [],
       [
@@ -70,6 +74,7 @@ describe('[e2e] Submissions', () => {
     submissionLogsRepository = moduleRef.get<SubmissionLogsRepository>(SubmissionLogsRepository);
     submissionMediasRepository = moduleRef.get<SubmissionMediaRepository>(SubmissionMediaRepository);
     studentRepository = moduleRef.get<StudentsRepository>(StudentsRepository);
+    revisionsRepository = moduleRef.get<RevisionsRepository>(RevisionsRepository);
 
     student = await setupStudent(app);
     accessToken = await setupJWT(app, student);
@@ -235,6 +240,47 @@ describe('[e2e] Submissions', () => {
       expect(response.body.data.mediaUrl).toBeDefined();
       expect(response.body.data.mediaUrl.video).toBeDefined();
       expect(response.body.data.mediaUrl.audio).toBeDefined();
+    });
+
+    it('상세 조회 - revisions 포함되어 조회', async () => {
+      const submission = await submissionsRepository.save(
+        SubmissionsFixture.creatSubmissionEntity(student, {
+          highlightSubmitText: faker.lorem.sentence(),
+          feedback: faker.lorem.sentence(),
+          highlights: [faker.lorem.words(3), faker.lorem.words(3)],
+        }),
+      );
+      await submissionMediasRepository.save(MediaFixture.createMediaEntity(submission));
+
+      // revisions 추가
+      const revisions = [];
+      for (let i = 0; i < 3; i++) {
+        revisions.push(RevisionsFixture.createRevisionEntity(submission));
+      }
+      await revisionsRepository.save(revisions);
+
+      const response = await request(app.getHttpServer())
+        .get(`/v1/submissions/${submission.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.result).toBe('ok');
+      expect(response.body.data.revisions).toBeDefined();
+      expect(Array.isArray(response.body.data.revisions)).toBe(true);
+      expect(response.body.data.revisions.length).toBe(3);
+
+      for (const revision of response.body.data.revisions) {
+        expect(revision).toMatchObject({
+          id: expect.any(Number),
+          submissionId: expect.any(Number),
+          studentId: expect.any(Number),
+          studentName: expect.any(String),
+          componentType: expect.any(String),
+          status: expect.any(String),
+          submitText: expect.any(String),
+          createdDt: expect.any(String),
+        });
+      }
     });
 
     it('상세 조회 - 존재하지 않는 ID 조회 시 실패', async () => {

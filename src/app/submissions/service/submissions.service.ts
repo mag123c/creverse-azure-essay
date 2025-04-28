@@ -65,7 +65,7 @@ export class SubmissionsService {
       studentId: student.id,
       studentName: student.name,
       mediaUrl: submission.media ? { video: submission.media.videoUrl, audio: submission.media.audioUrl } : undefined,
-      revisions: submission.revisions?.map((revision) => RevisionDetailItem.of(revision)),
+      revisions: submission.revisions?.map((revision) => RevisionDetailItem.of({ ...revision, submission })),
     });
   }
 
