@@ -19,7 +19,6 @@ import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
-import * as fs from 'fs/promises';
 
 @Injectable()
 export class SubmissionsService {
@@ -101,7 +100,7 @@ export class SubmissionsService {
    * 컨슈머에서 호출되는 평가 요청
    */
   async runEvaluationJob(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
-    await this.evaluateSubmission(submissionId, action, videoPath);
+    return await this.evaluateSubmission(submissionId, action, videoPath);
   }
 
   /**
@@ -122,8 +121,8 @@ export class SubmissionsService {
       throw new AlreadyEvaluatedException(submissionId);
     }
 
-    // 재평가 시도가 있었던 경우 (메시지큐의 재요청 시)
-    if (existsSubmission.logs && existsSubmission.logs.length > 0) {
+    // 재평가 시도가 있었던 경우 (제출 최초 실패에 의한 메시지큐의 재요청 시, 수동(REVISION)은 제외)
+    if (action === SubmissionLogAction.RETRY_SUBMISSION && existsSubmission.logs && existsSubmission.logs.length > 0) {
       throw new AlreadyRevisedSubmissionException(submissionId);
     }
 
@@ -142,11 +141,6 @@ export class SubmissionsService {
       // 평가 실패 시 예외처리
       if (evaluate.status !== 'fulfilled') {
         throw evaluate.reason;
-      }
-
-      // 평가 성공했으면 파일 삭제
-      if (videoPath) {
-        await this.tryDelete(videoPath);
       }
 
       await this.saveSubmissionResult(existsSubmission, submission, action);
@@ -170,6 +164,17 @@ export class SubmissionsService {
   private async isDuplicateSubmission(studentId: number, componentType: string): Promise<boolean> {
     const submission = await this.submissionsRepository.findOneByStudentIdAndComponentType(studentId, componentType);
     return submission !== null;
+  }
+
+  /**
+   * 기존 제출 상태 반환 (REVISION 시 revisions.previous_status를 위해 사용)
+   */
+  async getSubmissionStatus(submissionId: number): Promise<SubmissionStatus> {
+    const submission = await this.submissionsRepository.findOneBySubmissionId(submissionId);
+    if (!submission) {
+      throw new SubmissionNotFoundException(submissionId);
+    }
+    return submission.status;
   }
 
   /**
@@ -291,17 +296,5 @@ export class SubmissionsService {
       latency,
       submission: submissionEntity,
     });
-  }
-
-  /**
-   * 파일 삭제
-   */
-  private async tryDelete(path: string) {
-    try {
-      await fs.unlink(path);
-      this.logger.log(`파일 삭제 완료: ${path}`);
-    } catch (e: any) {
-      this.logger.warn(`파일 삭제 실패 (${path}): ${e.message}`);
-    }
   }
 }

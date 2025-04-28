@@ -11,7 +11,7 @@ export class SubmissionProducer {
    *
    */
   async enqueueSubmissionEvaluation(submissionId: number, videoPath?: string) {
-    this.logger.log(`${submissionId} 의 재평가 요청을 큐에 추가합니다. (영상: ${videoPath ? videoPath : '없음'})`);
+    this.logger.log(`${submissionId} 의 자동 재평가 요청을 큐에 추가합니다. (영상: ${videoPath ? videoPath : '없음'})`);
     await this.submissionQueue.add(
       'evaluate-and-upload',
       { submissionId, videoPath },

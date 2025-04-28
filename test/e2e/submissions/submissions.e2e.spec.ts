@@ -8,7 +8,7 @@ import { SubmissionsModule } from '@src/app/submissions/submissions.module';
 import { BlobStorageService } from '@src/infra/azure/blob/service/blob-storage.service';
 import { OpenAIService } from '@src/infra/azure/openai/service/openai.service';
 import { CustomDatabaseModule } from '@src/infra/database/database.module';
-import { QueueModule } from '@src/infra/queue/queue.module';
+import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
 import { setupApp, setupJWT, setupModule, setupStudent } from 'test/setup';
 import request from 'supertest';
 import { AuthModule } from '@src/app/auth/auth.module';
@@ -46,7 +46,7 @@ describe('[e2e] Submissions', () => {
 
   beforeAll(async () => {
     const moduleRef = await setupModule(
-      [SubmissionsModule, CustomDatabaseModule, AuthModule, QueueModule, StudentsModule],
+      [SubmissionsModule, CustomDatabaseModule, AuthModule, SubmissionQueueModule, StudentsModule],
       [],
       [],
       [

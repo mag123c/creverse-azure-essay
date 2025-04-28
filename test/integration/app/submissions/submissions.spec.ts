@@ -1,5 +1,4 @@
 import type { INestApplication } from '@nestjs/common';
-import { QueueModule } from '@src/infra/queue/queue.module';
 import { type Submission, SubmissionStatus } from '@src/app/submissions/domain/submission';
 import { SubmissionLogAction } from '@src/app/submissions/entities/submission-logs.entity';
 import {
@@ -26,6 +25,8 @@ import { StudentsRepository } from '@src/app/students/repositories/students.repo
 import { StudentsModule } from '@src/app/students/students.module';
 import { EvaluationFixture } from 'test/fixture/evaluation.fixture';
 import { Media, type FileMetadata } from '@src/app/submissions/domain/media';
+import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
+import { faker } from '@faker-js/faker/.';
 
 describe('[integration] Submissions', () => {
   let app: INestApplication;
@@ -45,7 +46,7 @@ describe('[integration] Submissions', () => {
 
   beforeAll(async () => {
     const moduleRef = await setupModule(
-      [SubmissionsModule, CustomDatabaseModule, StudentsModule, QueueModule],
+      [SubmissionsModule, CustomDatabaseModule, StudentsModule, SubmissionQueueModule],
       [],
       [],
       [
@@ -124,7 +125,7 @@ describe('[integration] Submissions', () => {
   describe('평가 수행(runEvaluationJob)', () => {
     it('큐에 의해 재평가가 수행될 때, 큐에 등록된 submissionId가 없으면 예외를 던진다.', async () => {
       await expect(
-        submissionsService.runEvaluationJob(999, SubmissionLogAction.INITIALIZE_SUBMISSION),
+        submissionsService.runEvaluationJob(999, SubmissionLogAction.RETRY_SUBMISSION),
       ).rejects.toBeInstanceOf(SubmissionNotFoundException);
     });
 
@@ -137,7 +138,7 @@ describe('[integration] Submissions', () => {
       await submissionLogsRepository.save(mockSubmissionLog);
 
       await expect(
-        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION),
+        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.RETRY_SUBMISSION),
       ).rejects.toBeInstanceOf(AlreadyEvaluatedException);
     });
 
@@ -148,13 +149,14 @@ describe('[integration] Submissions', () => {
       const mockSubmissionLogs = [
         // 실패 이력
         SubmissionsFixture.createInitializeEvaluationLogEntity(mockSubmission, {
-          action: SubmissionLogAction.REVISION_SUBMISSION,
+          action: SubmissionLogAction.INITIALIZE_SUBMISSION,
           status: mockSubmission.status,
         }),
 
         // 재시도 이력
         SubmissionsFixture.createInitializeEvaluationLogEntity(mockSubmission, {
-          action: SubmissionLogAction.REVISION_SUBMISSION,
+          action: SubmissionLogAction.RETRY_SUBMISSION,
+          status: faker.helpers.arrayElement(Object.values(SubmissionStatus)),
         }),
       ];
 
@@ -162,7 +164,7 @@ describe('[integration] Submissions', () => {
       await submissionLogsRepository.save(mockSubmissionLogs);
 
       await expect(
-        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION),
+        submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.RETRY_SUBMISSION),
       ).rejects.toBeInstanceOf(AlreadyRevisedSubmissionException);
     });
 
@@ -201,7 +203,7 @@ describe('[integration] Submissions', () => {
       await submissionLogsRepository.save(mockSubmissionLog);
 
       try {
-        await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION);
+        await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.RETRY_SUBMISSION);
       } catch {}
 
       const [submission] = await submissionsRepository.find({
@@ -213,7 +215,7 @@ describe('[integration] Submissions', () => {
 
       expect(submission.logs![0].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
       expect(submission.logs![1].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
-      expect(submission.logs![2].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
+      expect(submission.logs![2].action).toBe(SubmissionLogAction.RETRY_SUBMISSION);
       expect(submission.logs![3].action).toBe(SubmissionLogAction.MEDIA_UPLOAD);
       expect(submission.logs![3].status).toBe(SubmissionStatus.FAILED);
     });
@@ -232,7 +234,7 @@ describe('[integration] Submissions', () => {
       await submissionsRepository.save(mockSubmission);
       await submissionLogsRepository.save(mockSubmissionLog);
 
-      await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION);
+      await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.RETRY_SUBMISSION);
 
       const [submission] = await submissionsRepository.find({
         where: { id: mockSubmission.id },
@@ -245,7 +247,7 @@ describe('[integration] Submissions', () => {
 
       expect(submission.logs![0].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
       expect(submission.logs![1].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
-      expect(submission.logs![2].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
+      expect(submission.logs![2].action).toBe(SubmissionLogAction.RETRY_SUBMISSION);
       expect(submission.logs![3].action).toBe(SubmissionLogAction.MEDIA_UPLOAD);
       expect(submission.logs![3].status).toBe(SubmissionStatus.SUCCESS);
     });
@@ -265,7 +267,7 @@ describe('[integration] Submissions', () => {
       await submissionLogsRepository.save(mockSubmissionLog);
 
       try {
-        await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.INITIALIZE_SUBMISSION);
+        await submissionsService.runEvaluationJob(mockSubmission.id, SubmissionLogAction.RETRY_SUBMISSION);
       } catch {}
 
       const [submission] = await submissionsRepository.find({
@@ -278,7 +280,7 @@ describe('[integration] Submissions', () => {
 
       expect(submission.logs![0].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
       expect(submission.logs![1].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
-      expect(submission.logs![2].action).toBe(SubmissionLogAction.INITIALIZE_SUBMISSION);
+      expect(submission.logs![2].action).toBe(SubmissionLogAction.RETRY_SUBMISSION);
       expect(submission.logs![3].action).toBe(SubmissionLogAction.MEDIA_UPLOAD);
     });
   });

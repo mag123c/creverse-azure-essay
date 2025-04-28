@@ -6,21 +6,20 @@ import { SubmissionEvaluator } from './service/submissions.evaluator';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SubmissionsEntity } from './entities/submissions.entity';
 import { SubmissionLogsEntity } from './entities/submission-logs.entity';
-import { RevisionsEntity } from './entities/revisions.entity';
 import { SubmissionMediaEntity } from './entities/submission-media.entity';
 import { SubmissionsRepository } from './repositories/submissions.repository';
 import { SubmissionLogsRepository } from './repositories/submission-logs.repository';
 import { SubmissionMediaUploader } from './uploader/submission-media-uploader';
 import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 import { SubmissionMediaRepository } from './repositories/submission-media.repository';
-import { QueueModule } from '@src/infra/queue/queue.module';
+import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SubmissionsEntity, SubmissionLogsEntity, SubmissionMediaEntity, RevisionsEntity]),
+    TypeOrmModule.forFeature([SubmissionsEntity, SubmissionLogsEntity, SubmissionMediaEntity]),
     OpenAIModule,
     BlobStorageModule,
-    forwardRef(() => QueueModule),
+    forwardRef(() => SubmissionQueueModule),
   ],
   providers: [
     SubmissionsService,

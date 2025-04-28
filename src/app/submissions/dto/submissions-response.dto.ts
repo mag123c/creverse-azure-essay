@@ -18,7 +18,7 @@ class MediaResponse {
   }
 }
 
-class SubmissionDetailItem {
+export class SubmissionDetailItem {
   @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
   readonly id!: number;
 

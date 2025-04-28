@@ -32,8 +32,8 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
   async findOneWithRevisionLog(submissionId: number): Promise<SubmissionsEntity | null> {
     return this.createQueryBuilder('submission')
       .innerJoinAndSelect('submission.student', 'student')
-      .leftJoinAndSelect('submission.logs', 'log', 'log.action = :action', {
-        action: SubmissionLogAction.REVISION_SUBMISSION,
+      .leftJoinAndSelect('submission.logs', 'log', 'log.action IN (:...actions)', {
+        actions: [SubmissionLogAction.RETRY_SUBMISSION, SubmissionLogAction.REVISION_SUBMISSION],
       })
       .where('submission.id = :submissionId', { submissionId })
       .getOne();

@@ -1,10 +1,10 @@
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { submissionQueueOptions } from './queue.config';
-import { SubmissionConsumer } from './submissions/submission.consumer';
-import { SubmissionProducer } from './submissions/submission.producer';
 import { SubmissionsModule } from '@src/app/submissions/submissions.module';
+import { SubmissionConsumer } from './submission.consumer';
+import { SubmissionProducer } from './submission.producer';
+import { submissionQueueOptions } from './submission-queue.config';
 
 @Module({
   imports: [
@@ -21,4 +21,4 @@ import { SubmissionsModule } from '@src/app/submissions/submissions.module';
   providers: [SubmissionConsumer, SubmissionProducer],
   exports: [SubmissionProducer],
 })
-export class QueueModule {}
+export class SubmissionQueueModule {}
