@@ -7,12 +7,15 @@ import {
 } from './dto/submissions-request.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from './dto/submissions-response.dto';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UploadedVideo } from '@src/common/pipe/file-validation.pipe';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { JwtDecoded } from '@src/common/decorator/jwt.decorator';
 import { Student } from '../students/domain/student';
 import { multerStorage } from '@src/infra/multer/multer.storage';
+import { ApiDefaultErrorResponse, ApiErrorResponses } from '@src/common/decorator/api-error-response.decorator';
+import { DuplicateSubmissionException, SubmissionNotFoundException } from './exception/submissions.exception';
+import { OpenAIApiException } from '@src/infra/azure/openai/exception/openai.exception';
 
 @ApiBearerAuth('accessToken')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +25,8 @@ export class SubmissionsController {
   constructor(private readonly submissionsService: SubmissionsService) {}
 
   @ApiOperation({ summary: '제출 결과 조회' })
+  @ApiResponse({ type: GetSubmissionsResponseDto })
+  @ApiDefaultErrorResponse()
   @Get()
   async getSubmissions(
     @JwtDecoded() student: Student,
@@ -31,6 +36,8 @@ export class SubmissionsController {
   }
 
   @ApiOperation({ summary: '제출 결과 상세 조회' })
+  @ApiResponse({ type: SubmissionDetailResponseDto })
+  @ApiErrorResponses({ summary: '제출 내역을 찾을 수 없음', message: new SubmissionNotFoundException(1).message })
   @Get(':submissionId')
   async getSubmissionDetail(
     @JwtDecoded() student: Student,
@@ -47,6 +54,16 @@ export class SubmissionsController {
   - 학생 1명당 동일한 컴포넌트 타입(componentType)은 1회만 제출 가능합니다. 이미 해당 타입으로 평가가 완료된 경우, 중복 제출은 허용되지 않습니다.`,
   })
   @ApiBody({ type: CreateSubmissionsRequestWithFile })
+  @ApiErrorResponses(
+    {
+      summary: '중복된 컴포넌트 타입의 제출',
+      message: new DuplicateSubmissionException(1, 'componentType').message,
+    },
+    {
+      summary: '평가(OpenAI) 오류 - JSON 파싱 실패 / 기타 API 오류',
+      message: new OpenAIApiException('요청보낸 텍스트', 'OpenAI의 메세지').message,
+    },
+  )
   @ApiConsumes('multipart/form-data')
   @ApiConsumes('application/json')
   @UseInterceptors(

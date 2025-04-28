@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import type { SwaggerCustomOptions } from '@nestjs/swagger';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ErrorResponseDto } from '@src/common/response/api-response.dto';
 
 export const swaggerConfig = () => {
   return new DocumentBuilder()
@@ -19,13 +20,15 @@ export const swaggerConfig = () => {
 };
 
 export const setupSwagger = (app: INestApplication) => {
-  const document = SwaggerModule.createDocument(app, swaggerConfig(), {});
+  const document = SwaggerModule.createDocument(app, swaggerConfig(), {
+    extraModels: [ErrorResponseDto], // 에러 디폴트 포맷
+  });
+
   const swaggerOptions: SwaggerCustomOptions = {
     swaggerOptions: {
       persistAuthorization: true,
       ui: true, // UI
-      raw: false, // json, yaml falsy
-      tagsSorter: 'alpha',
+      raw: true,
     },
   };
 

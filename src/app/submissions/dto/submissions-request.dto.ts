@@ -82,7 +82,7 @@ export class GetSubmissionsRequestDto implements PaginationRequest {
   status?: SubmissionStatus;
 
   /**
-   * 제출했던 컴포넌트 타입
+   * 제출했던 컴포넌트 타입 (1=1)
    * @example "Essay Writing"
    */
   @ApiPropertyOptional()

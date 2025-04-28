@@ -117,12 +117,12 @@ export class SubmissionsService {
       throw new SubmissionNotFoundException(submissionId);
     }
 
-    // 기존 평가가 실패한 게 아닌 경우
+    // 기존 평가가 실패한 게 아닌 경우 (메시지큐의 재요청 시)
     if (existsSubmission.status !== SubmissionStatus.PENDING && existsSubmission.status !== SubmissionStatus.FAILED) {
       throw new AlreadyEvaluatedException(submissionId);
     }
 
-    // 재평가 시도가 있었던 경우
+    // 재평가 시도가 있었던 경우 (메시지큐의 재요청 시)
     if (existsSubmission.logs && existsSubmission.logs.length > 0) {
       throw new AlreadyRevisedSubmissionException(submissionId);
     }
