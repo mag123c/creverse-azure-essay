@@ -42,7 +42,6 @@ export const setupModule = async (
 
 export const setupApp = async (app: INestApplication) => {
   app.useGlobalFilters(new HttpExceptionFilter());
-  // app.useGlobalInterceptors(new LoggingInterceptor());
   setupPipe(app);
   await app.init();
 };

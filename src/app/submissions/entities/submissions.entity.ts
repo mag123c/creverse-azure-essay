@@ -2,9 +2,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne } fro
 import { SubmissionStatus } from '../domain/submission';
 import { DefaultEntity } from '@src/common/abstract/default.entity';
 import { SubmissionLogsEntity } from './submission-logs.entity';
-import { Media } from '../domain/media';
 import { StudentsEntity } from '@src/app/students/entities/students.entity';
 import { SubmissionMediaEntity } from './submission-media.entity';
+import { RevisionsEntity } from '@src/app/revisions/entities/revisions.entity';
 
 @Index('idx_submissions_student_status_created', ['student', 'status', 'createdDt'])
 @Index('uq_submissions_student_component', ['student', 'componentType'], { unique: true })
@@ -24,6 +24,11 @@ export class SubmissionsEntity extends DefaultEntity {
     nullable: true,
   })
   logs?: SubmissionLogsEntity[];
+
+  @OneToMany(() => RevisionsEntity, (revisions) => revisions.submission, {
+    nullable: true,
+  })
+  revisions?: RevisionsEntity[];
 
   @OneToOne(() => SubmissionMediaEntity, (media) => media.submission, {
     nullable: true,
@@ -47,9 +52,6 @@ export class SubmissionsEntity extends DefaultEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   highlights?: string[];
-
-  @Column({ type: 'jsonb', nullable: true })
-  mediaUrl?: Media;
 
   @Column({ type: 'varchar', length: 20 })
   status!: SubmissionStatus;

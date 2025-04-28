@@ -18,7 +18,6 @@ export class SubmissionsFixture {
     entity.feedback = partial?.feedback;
     entity.highlights = partial?.highlights;
     entity.status = partial?.status ?? SubmissionStatus.PENDING;
-    entity.mediaUrl = partial?.mediaUrl;
     return entity;
   }
 

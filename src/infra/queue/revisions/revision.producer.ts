@@ -12,7 +12,11 @@ export class RevisionProducer {
    */
   async enqueueRevision(submissionId: number, videoPath?: string) {
     this.logger.log(`${submissionId} 의 수동 재평가 요청을 큐에 추가합니다. (영상: ${videoPath ? videoPath : '없음'})`);
-    await this.revisionQueue.add('revision', { submissionId, videoPath }, { jobId: `revision-${submissionId}` });
+    await this.revisionQueue.add(
+      'submission-revision',
+      { submissionId, videoPath },
+      { jobId: `revision-${submissionId}` },
+    );
   }
 
   getQueue() {

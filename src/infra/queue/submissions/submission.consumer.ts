@@ -38,14 +38,4 @@ export class SubmissionConsumer extends WorkerHost {
       }
     }
   }
-
-  async onActive(job: Job) {
-    this.logger.log(`Job ${job.id} active`);
-  }
-  async onCompleted(job: Job) {
-    this.logger.log(`Job ${job.id} completed`);
-  }
-  async onFailed(job: Job, err: Error) {
-    this.logger.error(`Job ${job.id} failed: ${err.message}`);
-  }
 }

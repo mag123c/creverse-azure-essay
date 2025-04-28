@@ -65,7 +65,8 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
         'student.id',
         'student.name',
       ])
-      .where('student.id = :studentId', { studentId });
+      .where('student.id = :studentId', { studentId })
+      .orderBy('submission.createdDt', 'DESC');
 
     // 필터
     if (req.status) {
@@ -80,10 +81,7 @@ export class SubmissionsRepository extends Repository<SubmissionsEntity> {
     if (req.sort) {
       const [field, direction] = req.sort.split(',');
       baseQuery.orderBy(`submission.${field}`, direction.toUpperCase() as 'ASC' | 'DESC');
-    } else {
-      baseQuery.orderBy('submission.createdDt', 'DESC');
     }
-
     return getOffsetPaginatedResult(baseQuery, req.page, req.size);
   }
 

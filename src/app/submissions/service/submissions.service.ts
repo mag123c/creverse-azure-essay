@@ -39,7 +39,6 @@ export class SubmissionsService {
    * @description
    *  학생이 제출한 에세이의 제출 내역을 조회합니다.
    *    - 필터: 상태
-   *    - 검색: 학생 ID(PK), 학생 이름
    *    - 정렬: 생성일자 DESC
    */
   async getSubmissions(student: Student, req: GetSubmissionsRequestDto): Promise<GetSubmissionsResponseDto> {
@@ -83,7 +82,7 @@ export class SubmissionsService {
     req: CreateSubmissionsRequestDto,
     videoFile?: Express.Multer.File,
   ) {
-    this.logger.log(`학생 ${student.id} - 컴포넌트 ${req.componentType} 제출 요청`);
+    this.logger.log(`[${student.id}] ${student.name} 학생이  - 컴포넌트 ${req.componentType} 제출 시작`);
 
     // 중복된 컴포넌트 타입의 제출이 있다면 예외처리
     await this.isDuplicateSubmission(student.id, req.componentType);
@@ -164,17 +163,6 @@ export class SubmissionsService {
   private async isDuplicateSubmission(studentId: number, componentType: string): Promise<boolean> {
     const submission = await this.submissionsRepository.findOneByStudentIdAndComponentType(studentId, componentType);
     return submission !== null;
-  }
-
-  /**
-   * 기존 제출 상태 반환 (REVISION 시 revisions.previous_status를 위해 사용)
-   */
-  async getSubmissionStatus(submissionId: number): Promise<SubmissionStatus> {
-    const submission = await this.submissionsRepository.findOneBySubmissionId(submissionId);
-    if (!submission) {
-      throw new SubmissionNotFoundException(submissionId);
-    }
-    return submission.status;
   }
 
   /**
@@ -275,7 +263,6 @@ export class SubmissionsService {
       score: submission.getEvaluation()?.getScore(),
       feedback: submission.getEvaluation()?.getFeedback(),
       highlights: submission.getEvaluation()?.getHighlights(),
-      mediaUrl: submission.getMedia()?.toJson(),
       status: submission.getStatus()!,
     });
     await this.submissionLogsRepository.save(submissionLogs);
@@ -296,5 +283,33 @@ export class SubmissionsService {
       latency,
       submission: submissionEntity,
     });
+  }
+
+  /**
+   * 수동 재평가 시 상태 변경
+   */
+  @Transactional()
+  async markRevision(submissionEntity: SubmissionsEntity) {
+    submissionEntity.status = SubmissionStatus.EVALUATING;
+
+    await Promise.all([
+      this.submissionsRepository.save(submissionEntity),
+      this.submissionLogsRepository.save(
+        this.createSubmissionLog(
+          submissionEntity,
+          SubmissionLogAction.REVISION_SUBMISSION,
+          SubmissionStatus.EVALUATING,
+          0,
+        ),
+      ),
+    ]);
+  }
+
+  async getOneOrThrow(submissionId: number): Promise<SubmissionsEntity> {
+    const submission = await this.submissionsRepository.findOneBySubmissionId(submissionId);
+    if (!submission) {
+      throw new SubmissionNotFoundException(submissionId);
+    }
+    return submission;
   }
 }

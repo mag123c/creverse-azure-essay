@@ -4,17 +4,17 @@ import type { SubmissionsEntity } from '@src/app/submissions/entities/submission
 
 export class MediaFixture {
   static createMedia() {
-    return Media.of(
-      'videoUrl',
-      'audioUrl',
-      {
+    return Media.of({
+      videoUrl: 'videoUrl',
+      audioUrl: 'audioUrl',
+      meta: {
         format: 'mp4',
         duration: 120,
         resolution: '1920x1080',
         originalFileName: 'test.mp4',
       },
-      0,
-    );
+      latency: 0,
+    });
   }
 
   static createMediaEntity(submission: SubmissionsEntity, partial?: Partial<SubmissionMediaEntity>) {

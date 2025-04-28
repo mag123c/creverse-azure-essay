@@ -10,6 +10,7 @@ import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 import { AuthModule } from './auth/auth.module';
 import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
 import { RevisionsQueueModule } from '@src/infra/queue/revisions/revision-queue.module';
+import { RevisionsModule } from './revisions/revisions.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RevisionsQueueModule } from '@src/infra/queue/revisions/revision-queue.
     AuthModule,
     SubmissionsModule,
     StudentsModule,
+    RevisionsModule,
   ],
 })
 export class AppModule {}

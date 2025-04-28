@@ -31,8 +31,8 @@ export class Media {
     return this.latency;
   }
 
-  static of(videoUrl: string, audioUrl: string, meta: FileMetadata, latency: number): Media {
-    return new Media(videoUrl, audioUrl, meta, latency);
+  static of(data: { videoUrl: string; audioUrl: string; meta: FileMetadata; latency: number }): Media {
+    return new Media(data.videoUrl, data.audioUrl, data.meta, data.latency);
   }
 
   toJson(): any {

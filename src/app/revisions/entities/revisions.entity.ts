@@ -1,4 +1,3 @@
-import { Media } from '@src/app/submissions/domain/media';
 import { SubmissionStatus } from '@src/app/submissions/domain/submission';
 import { SubmissionsEntity } from '@src/app/submissions/entities/submissions.entity';
 import { DefaultOmitUpdateDtEntity } from '@src/common/abstract/default.entity';
@@ -12,10 +11,7 @@ export class RevisionsEntity extends DefaultOmitUpdateDtEntity {
   submission!: SubmissionsEntity;
 
   @Column({ type: 'varchar', length: 20 })
-  previousStatus!: SubmissionStatus;
-
-  @Column({ type: 'varchar', length: 20 })
-  newStatus!: SubmissionStatus;
+  status!: SubmissionStatus;
 
   @Column({ length: 100 })
   componentType!: string;
@@ -34,7 +30,4 @@ export class RevisionsEntity extends DefaultOmitUpdateDtEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   highlights?: string[];
-
-  @Column({ type: 'jsonb', nullable: true })
-  mediaUrl?: Media;
 }

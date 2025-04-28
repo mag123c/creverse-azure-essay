@@ -33,9 +33,18 @@ export class SubmissionMediaUploader {
       const audio = await this.blobStorage.uploadFileFromPath(audioPath, 'audio/mp3');
 
       this.logger.log(`영상 업로드 완료`);
-      submission.setMedia(Media.of(video.sasUrl, audio.sasUrl, meta, Date.now() - start));
+      submission.setMedia(
+        Media.of({ videoUrl: video.sasUrl, audioUrl: audio.sasUrl, meta, latency: Date.now() - start }),
+      );
     } catch (e: any) {
-      submission.setMedia(Media.of('', '', {} as FileMetadata, Date.now() - start));
+      submission.setMedia(
+        Media.of({
+          videoUrl: '',
+          audioUrl: '',
+          meta: {} as FileMetadata,
+          latency: Date.now() - start,
+        }),
+      );
       this.logger.warn(`영상 처리 실패: ${e.message}`);
     }
   }

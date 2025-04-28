@@ -1,22 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ApiSuccessResponse } from '@src/common/response/api-response.dto';
-import { PaginationMeta } from '@src/common/pagination/pagination.interface';
+import { SubmissionStatus } from '@src/app/submissions/domain/submission';
+import { MediaItem, type SubmissionList } from '@src/app/submissions/dto/submissions-response.dto';
 import { PaginationMetaDto } from '@src/common/pagination/meta.dto';
-import { SubmissionStatus } from '../domain/submission';
-import { SubmissionsEntity } from '../entities/submissions.entity';
+import { PaginationMeta } from '@src/common/pagination/pagination.interface';
+import { ApiSuccessResponse } from '@src/common/response/api-response.dto';
+import { RevisionsEntity } from '../entities/revisions.entity';
 
-export interface SubmissionList {
-  id: number;
-  studentId: number;
-  studentName: string;
-  componentType: string;
-  status: SubmissionStatus;
-  createdDt: Date;
-  updatedDt: Date;
-  score?: number;
+export interface RevisionList extends Omit<SubmissionList, 'updatedDt'> {
+  submissionId: number;
 }
 
-export interface SubmissionDetail extends SubmissionList {
+export interface RevisionDetail extends RevisionList {
   submitText: string;
   feedback?: string;
   highlights?: string[];
@@ -24,22 +18,12 @@ export interface SubmissionDetail extends SubmissionList {
   mediaUrl?: MediaItem;
 }
 
-export class MediaItem {
-  @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
-  readonly video?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/audio.mp3' })
-  readonly audio?: string;
-
-  constructor(video?: string, audio?: string) {
-    this.video = video;
-    this.audio = audio;
-  }
-}
-
-class SubmissionListItem implements SubmissionList {
-  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+class RevisionListItem implements RevisionList {
+  @ApiProperty({ description: '재평가 고유 식별자 (PK)', example: 1 })
   readonly id!: number;
+
+  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+  readonly submissionId!: number;
 
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
@@ -56,70 +40,70 @@ class SubmissionListItem implements SubmissionList {
   @ApiProperty({ description: '제출 일자', example: '2025-01-01T12:00:00Z' })
   readonly createdDt!: Date;
 
-  @ApiProperty({ description: '업데이트 일자', example: '2025-01-01T12:00:00Z' })
-  readonly updatedDt!: Date;
-
   @ApiPropertyOptional({ description: '점수(0 ~ 10)', example: 8 })
   readonly score?: number;
 
   constructor(data: {
     id: number;
+    submissionId: number;
     studentId: number;
     studentName: string;
     componentType: string;
     status: SubmissionStatus;
     createdDt: Date;
-    updatedDt: Date;
     score?: number;
   }) {
     this.id = data.id;
+    this.submissionId = data.submissionId;
     this.studentId = data.studentId;
     this.studentName = data.studentName;
     this.componentType = data.componentType;
     this.status = data.status;
     this.createdDt = data.createdDt;
-    this.updatedDt = data.updatedDt;
     this.score = data.score;
   }
 }
 
 /**
- * @GET /v1/submissions 응답 DTO
+ * @GET /v1/revisions 응답 DTO
  */
-export class GetSubmissionsResponseDto extends ApiSuccessResponse<SubmissionListItem> {
-  @ApiProperty({ type: () => SubmissionListItem, isArray: true })
-  data: SubmissionListItem[];
+export class GetRevisionsResponseDto extends ApiSuccessResponse<RevisionListItem> {
+  @ApiProperty({ type: () => RevisionListItem, isArray: true })
+  data: RevisionListItem[];
 
   @ApiProperty({ type: PaginationMetaDto })
   meta: PaginationMeta;
 
-  constructor(submissions: SubmissionListItem[], meta: PaginationMeta) {
+  constructor(revisions: RevisionListItem[], meta: PaginationMeta) {
     super();
-    this.data = submissions;
+    this.data = revisions;
     this.meta = meta;
   }
 
-  static of(submissionsEntity: SubmissionsEntity[], meta: PaginationMeta): GetSubmissionsResponseDto {
-    const submissions = submissionsEntity.map(
-      (submission) =>
-        new SubmissionListItem({
-          id: submission.id,
-          studentId: submission.student.id,
-          studentName: submission.student.name,
-          componentType: submission.componentType,
-          status: submission.status,
-          createdDt: submission.createdDt,
-          updatedDt: submission.updatedDt,
-          score: submission.score,
+  static of(revisionsEntity: RevisionsEntity[], meta: PaginationMeta): GetRevisionsResponseDto {
+    const revisions = revisionsEntity.map(
+      (revision) =>
+        new RevisionListItem({
+          id: revision.id,
+          submissionId: revision.submission.id,
+          studentId: revision.submission.student.id,
+          studentName: revision.submission.student.name,
+          componentType: revision.componentType,
+          status: revision.status,
+          createdDt: revision.createdDt,
+          score: revision.score,
         }),
     );
-    return new GetSubmissionsResponseDto(submissions, meta);
+    return new GetRevisionsResponseDto(revisions, meta);
   }
 }
 
-export class SubmissionDetailItem implements SubmissionDetail {
-  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+export class RevisionDetailItem implements RevisionDetail {
+  @ApiProperty({ description: '재평가 고유 식별자 (PK)', example: 1 })
   readonly id!: number;
+
+  @ApiProperty({ description: '등록된 평가 요청의 고유 식별자 (PK)', example: 1 })
+  readonly submissionId!: number;
 
   @ApiProperty({ description: '학생의 고유 식별자 (PK)', example: 1 })
   readonly studentId!: number;
@@ -141,9 +125,6 @@ export class SubmissionDetailItem implements SubmissionDetail {
 
   @ApiProperty({ description: '제출 일자', example: '2025-01-01T12:00:00Z' })
   readonly createdDt!: Date;
-
-  @ApiProperty({ description: '업데이트 일자', example: '2025-01-01T12:00:00Z' })
-  readonly updatedDt!: Date;
 
   @ApiPropertyOptional({ description: '점수(0 ~ 10)', example: 8 })
   readonly score?: number;
@@ -175,13 +156,13 @@ export class SubmissionDetailItem implements SubmissionDetail {
 
   constructor(data: {
     id: number;
+    submissionId: number;
     studentId: number;
     studentName: string;
     componentType: string;
     status: SubmissionStatus;
     submitText: string;
     createdDt: Date;
-    updatedDt: Date;
     score?: number;
     feedback?: string;
     highlights?: string[];
@@ -189,13 +170,13 @@ export class SubmissionDetailItem implements SubmissionDetail {
     mediaUrl?: MediaItem;
   }) {
     this.id = data.id;
+    this.submissionId = data.id;
     this.studentId = data.studentId;
     this.studentName = data.studentName;
     this.componentType = data.componentType;
     this.status = data.status;
     this.submitText = data.submitText;
     this.createdDt = data.createdDt;
-    this.updatedDt = data.updatedDt;
     this.score = data.score;
     this.feedback = data.feedback;
     this.highlights = data.highlights;
@@ -204,16 +185,16 @@ export class SubmissionDetailItem implements SubmissionDetail {
   }
 }
 
-export class SubmissionDetailResponseDto extends ApiSuccessResponse<SubmissionDetailItem> {
-  @ApiProperty({ type: SubmissionDetailItem })
-  data: SubmissionDetailItem;
+export class RevisionDetailResponseDto extends ApiSuccessResponse<RevisionDetailItem> {
+  @ApiProperty({ type: RevisionDetailItem })
+  data: RevisionDetailItem;
 
-  constructor(data: SubmissionDetailItem) {
+  constructor(data: RevisionDetailItem) {
     super();
     this.data = data;
   }
 
-  static of(data: SubmissionDetailItem): SubmissionDetailResponseDto {
-    return new SubmissionDetailResponseDto(data);
+  static of(data: RevisionDetailItem): RevisionDetailResponseDto {
+    return new RevisionDetailResponseDto(data);
   }
 }
