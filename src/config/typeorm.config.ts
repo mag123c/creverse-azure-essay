@@ -20,7 +20,7 @@ export const typeORMConfig = (configService: ConfigService) => {
     schema: configService.get('DATABASE_SCHEMA'),
     autoLoadEntities: true,
     synchronize: isLocal() || isTest(),
-    // dropSchema: isLocal() || isTest(),
+    dropSchema: isTest(),
     // logging: isLocal(),
     logging: false,
     namingStrategy: new SnakeNamingStrategy(),
