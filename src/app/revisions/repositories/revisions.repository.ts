@@ -63,7 +63,7 @@ export class RevisionsRepository extends Repository<RevisionsEntity> {
   /**
    * 학생의 수동 재평가 내역 상세 조회
    */
-  async findStudentRevisionDetail(revisionId: number): Promise<RevisionsEntity | null> {
+  async findRevisionDetail(revisionId: number): Promise<RevisionsEntity | null> {
     return await this.createQueryBuilder('revisions')
       .innerJoinAndSelect('revisions.submission', 'submission')
       .innerJoinAndSelect('submission.student', 'student')

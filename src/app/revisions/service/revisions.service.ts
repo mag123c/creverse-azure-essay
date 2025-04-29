@@ -40,7 +40,7 @@ export class RevisionsService {
    *  학생이 제출한 에세이의 (수동) 재평가 상세 내역을 조회합니다.
    */
   async getRevisionDetail(student: Student, revisionId: number): Promise<RevisionDetailResponseDto> {
-    const revision = await this.revisionsRepository.findStudentRevisionDetail(revisionId);
+    const revision = await this.revisionsRepository.findRevisionDetail(revisionId);
     if (!revision) {
       throw new RevisionsNotFoundException(revisionId);
     }

@@ -157,7 +157,7 @@ describe('[e2e] Revisions', () => {
       const revision = await revisionsRepository.save(RevisionsFixture.createRevisionEntity(submission));
 
       const response = await request(app.getHttpServer())
-        .get(`/v1/revisions/${submission.id}`)
+        .get(`/v1/revisions/${revision.id}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(200);
