@@ -19,7 +19,7 @@ export class AlreadyEvaluatedException extends BaseException {
 }
 export class SubmissionNotFoundException extends BaseException {
   constructor(submissionId: number) {
-    super(404, `학생(${submissionId}) 의 제출을 찾을 수 없습니다`, { submissionId });
+    super(404, `학생의 제출(${submissionId})을 찾을 수 없습니다`, { submissionId });
   }
 }
 

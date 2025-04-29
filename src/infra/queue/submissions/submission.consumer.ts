@@ -1,7 +1,7 @@
 import { LoggingInterceptor } from '@src/common/interceptor/logging.interceptor';
 import { HttpExceptionFilter } from '@src/common/filter/http-exception.filter';
 import { Logger, UseFilters, UseInterceptors } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnQueueEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { SubmissionsService } from '@src/app/submissions/service/submissions.service';
 import { Job } from 'bullmq';
 import { SubmissionLogAction } from '@src/app/submissions/entities/submission-logs.entity';
@@ -17,6 +17,14 @@ export class SubmissionConsumer extends WorkerHost {
   }
 
   async process(job: Job<{ submissionId: number; videoPath?: string }>) {
+    switch (job.name) {
+      case 'submission':
+        await this.processSubmissionJob(job);
+        break;
+    }
+  }
+
+  async processSubmissionJob(job: Job<{ submissionId: number; videoPath?: string }>) {
     const { submissionId, videoPath } = job.data;
 
     this.logger.log(`${submissionId} 의 자동 재평가를 시작합니다.(영상: ${videoPath ? videoPath : '없음'})`);
@@ -37,5 +45,18 @@ export class SubmissionConsumer extends WorkerHost {
         }
       }
     }
+  }
+
+  @OnQueueEvent('active')
+  async onActive(job: Job) {
+    this.logger.log(`Job ${job.id} active`);
+  }
+  @OnQueueEvent('completed')
+  async onCompleted(job: Job) {
+    this.logger.log(`Job ${job.id} completed`);
+  }
+  @OnQueueEvent('failed')
+  async onFailed(job: Job, err: Error) {
+    this.logger.error(`Job ${job.id} failed: ${err.message}`);
   }
 }

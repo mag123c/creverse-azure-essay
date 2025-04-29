@@ -19,8 +19,8 @@ import { SubmissionsEntity } from '../entities/submissions.entity';
 import { Transactional } from 'typeorm-transactional';
 import { OffsetPaginateResult } from '@src/common/pagination/pagination.interface';
 import { GetSubmissionsResponseDto, SubmissionDetailResponseDto } from '../dto/submissions-response.dto';
-import { RevisionDetailItem } from '@src/app/revisions/dto/revisions-response.dto';
 import { EvaluationStats } from '@src/app/stats/interface/stats.interface';
+import { RevisionListItem } from '@src/app/revisions/dto/revisions-response.dto';
 
 @Injectable()
 export class SubmissionsService {
@@ -62,11 +62,20 @@ export class SubmissionsService {
     }
 
     return SubmissionDetailResponseDto.of({
-      ...submission,
+      id: submission.id,
       studentId: student.id,
       studentName: student.name,
+      componentType: submission.componentType,
+      status: submission.status,
+      submitText: submission.submitText,
+      createdDt: submission.createdDt,
+      updatedDt: submission.updatedDt,
+      score: submission.score,
+      feedback: submission.feedback,
+      highlights: submission.highlights,
+      highlightSubmitText: submission.highlightSubmitText,
       mediaUrl: submission.media ? { video: submission.media.videoUrl, audio: submission.media.audioUrl } : undefined,
-      revisions: submission.revisions?.map((revision) => RevisionDetailItem.of({ ...revision, submission })),
+      revisions: submission.revisions?.map((revision) => RevisionListItem.of({ ...revision, submission })),
     });
   }
 
@@ -110,7 +119,7 @@ export class SubmissionsService {
    *  - 영상 업로드는 성공/실패 여부를 따지지 않음.
    *  - 평가 요청은 성공/실패 여부를 따져 예외처리 및 최초라면 큐에 적재.
    */
-  private async evaluateSubmission(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
+  async evaluateSubmission(submissionId: number, action: SubmissionLogAction, videoPath?: string) {
     this.logger.log(`제출 ID ${submissionId} - 평가 시작 (Action: ${action})`);
 
     const existsSubmission = await this.submissionsRepository.findOneWithRevisionLog(submissionId);
@@ -118,14 +127,20 @@ export class SubmissionsService {
       throw new SubmissionNotFoundException(submissionId);
     }
 
-    // 기존 평가가 실패한 게 아닌 경우 (메시지큐의 재요청 시)
-    if (existsSubmission.status !== SubmissionStatus.PENDING && existsSubmission.status !== SubmissionStatus.FAILED) {
-      throw new AlreadyEvaluatedException(submissionId);
-    }
-
-    // 재평가 시도가 있었던 경우 (제출 최초 실패에 의한 메시지큐의 재요청 시, 수동(REVISION)은 제외)
-    if (action === SubmissionLogAction.RETRY_SUBMISSION && existsSubmission.logs && existsSubmission.logs.length > 0) {
+    // 재평가 시도가 있었던 경우 (메시지큐의 재요청 시)
+    if (
+      action !== SubmissionLogAction.REVISION_SUBMISSION &&
+      existsSubmission.logs?.some((log) => log.action === SubmissionLogAction.RETRY_SUBMISSION)
+    ) {
       throw new AlreadyRevisedSubmissionException(submissionId);
+    }
+    // 기존 평가가 실패한 게 아닌 경우 (메시지큐의 재요청 시)
+    else if (
+      action !== SubmissionLogAction.REVISION_SUBMISSION &&
+      existsSubmission.status !== SubmissionStatus.PENDING &&
+      existsSubmission.status !== SubmissionStatus.FAILED
+    ) {
+      throw new AlreadyEvaluatedException(submissionId);
     }
 
     const submission = Submission.ofEntity(existsSubmission);

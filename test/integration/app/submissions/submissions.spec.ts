@@ -101,7 +101,7 @@ describe('[integration] Submissions', () => {
       // 큐에 Job이 등록되었는지 확인
       const suite = await submissionProducer['submissionQueue'].getJobs();
       expect(suite).toHaveLength(1);
-      expect(suite[0].name).toBe('evaluate-and-upload');
+      expect(suite[0].name).toBe('submission');
       expect(suite[0].data).toMatchObject({
         submissionId: expect.any(Number),
         videoPath: expect.any(String),

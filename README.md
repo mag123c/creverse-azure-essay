@@ -3,7 +3,8 @@
 1. 유의사항
 
 - 로컬 환경, 테스트 환경에서는 데이터베이스 synchronize가 동작합니다.
-- .env를 .env.example에 있는 변수의 값을 채워서 세팅하세요.
+- .env를 .env.example에 있는 변수의 값을 채워서 세팅했습니다.
+- 로컬, 테스트환경에서는 docker-local-compose.yml을 사용하여 테스트 DB,Redis를 임시로 띄워서 개발 및 테스트 작업을 진행했습니다.
 
 2. 실행
 

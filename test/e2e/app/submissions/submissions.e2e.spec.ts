@@ -20,6 +20,7 @@ import { SubmissionMediaRepository } from '@src/app/submissions/repositories/sub
 import { RevisionsFixture } from 'test/fixture/revisions.fixture';
 import { RevisionsModule } from '@src/app/revisions/revisions.module';
 import { RevisionsRepository } from '@src/app/revisions/repositories/revisions.repository';
+import { SubmissionNotFoundException } from '@src/app/submissions/exception/submissions.exception';
 
 type QueryOption = {
   desc: string;
@@ -277,8 +278,8 @@ describe('[e2e] Submissions', () => {
           studentName: expect.any(String),
           componentType: expect.any(String),
           status: expect.any(String),
-          submitText: expect.any(String),
           createdDt: expect.any(String),
+          score: expect.any(Number),
         });
       }
     });
@@ -292,7 +293,7 @@ describe('[e2e] Submissions', () => {
 
       expect(response.status).toBe(200); // 실패여도 status 200
       expect(response.body.result).toBe('failed');
-      expect(response.body.message).toContain('제출을 찾을 수 없습니다');
+      expect(response.body.message).toContain(new SubmissionNotFoundException(invalidId).message);
     });
   });
 });

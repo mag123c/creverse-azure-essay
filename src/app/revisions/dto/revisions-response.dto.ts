@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SubmissionStatus } from '@src/app/submissions/domain/submission';
-import { MediaItem, type SubmissionList } from '@src/app/submissions/dto/submissions-response.dto';
+import { type SubmissionList } from '@src/app/submissions/dto/submissions-response.dto';
 import { PaginationMetaDto } from '@src/common/pagination/meta.dto';
 import { PaginationMeta } from '@src/common/pagination/pagination.interface';
 import { ApiSuccessResponse } from '@src/common/response/api-response.dto';
@@ -15,10 +15,9 @@ export interface RevisionDetail extends RevisionList {
   feedback?: string;
   highlights?: string[];
   highlightSubmitText?: string;
-  mediaUrl?: MediaItem;
 }
 
-class RevisionListItem implements RevisionList {
+export class RevisionListItem implements RevisionList {
   @ApiProperty({ description: '재평가 고유 식별자 (PK)', example: 1 })
   readonly id!: number;
 
@@ -61,6 +60,19 @@ class RevisionListItem implements RevisionList {
     this.status = data.status;
     this.createdDt = data.createdDt;
     this.score = data.score;
+  }
+
+  static of(data: RevisionsEntity): RevisionListItem {
+    return new RevisionListItem({
+      id: data.id,
+      submissionId: data.submission.id,
+      studentId: data.submission.student.id,
+      studentName: data.submission.student.name,
+      componentType: data.componentType,
+      status: data.status,
+      createdDt: data.createdDt,
+      score: data.score,
+    });
   }
 }
 
@@ -151,9 +163,6 @@ export class RevisionDetailItem implements RevisionDetail {
   })
   readonly highlightSubmitText?: string;
 
-  @ApiPropertyOptional({ description: '영상을 보냈을 경우 영상에 대한 영상, 음성 분리 경로 정보', type: MediaItem })
-  readonly mediaUrl?: MediaItem;
-
   constructor(data: {
     id: number;
     submissionId: number;
@@ -167,7 +176,6 @@ export class RevisionDetailItem implements RevisionDetail {
     feedback?: string;
     highlights?: string[];
     highlightSubmitText?: string;
-    mediaUrl?: MediaItem;
   }) {
     this.id = data.id;
     this.submissionId = data.id;
@@ -181,7 +189,6 @@ export class RevisionDetailItem implements RevisionDetail {
     this.feedback = data.feedback;
     this.highlights = data.highlights;
     this.highlightSubmitText = data.highlightSubmitText;
-    this.mediaUrl = data.mediaUrl;
   }
   static of(revision: RevisionsEntity): RevisionDetailItem {
     return new RevisionDetailItem({
@@ -197,9 +204,6 @@ export class RevisionDetailItem implements RevisionDetail {
       feedback: revision.feedback,
       highlights: revision.highlights,
       highlightSubmitText: revision.highlightSubmitText,
-      mediaUrl: revision.submission.media
-        ? { video: revision.submission.media.videoUrl, audio: revision.submission.media.audioUrl }
-        : undefined,
     });
   }
 }

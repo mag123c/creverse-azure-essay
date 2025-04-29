@@ -5,7 +5,6 @@ import { JwtDecoded } from '@src/common/decorator/jwt.decorator';
 import { Student } from '../students/domain/student';
 import { RevisionsService } from './service/revisions.service';
 import { GetRevisionsRequestDto, RevisionRequestDto } from './dto/revisions-request.dto';
-import { ApiSuccessResponse } from '@src/common/response/api-response.dto';
 import { ApiDefaultErrorResponse, ApiErrorResponses } from '@src/common/decorator/api-error-response.decorator';
 import { GetRevisionsResponseDto, RevisionDetailResponseDto } from './dto/revisions-response.dto';
 import { AlreadyEvaluatingException, RevisionsNotFoundException } from './exception/revisions.exception';
@@ -51,7 +50,7 @@ export class RevisionsController {
   async revisionSubmission(
     @JwtDecoded() student: Student,
     @Body() req: RevisionRequestDto,
-  ): Promise<ApiSuccessResponse<undefined>> {
+  ): Promise<RevisionDetailResponseDto> {
     return await this.revisionsService.revisionSubmission(student, req.submissionId);
   }
 }

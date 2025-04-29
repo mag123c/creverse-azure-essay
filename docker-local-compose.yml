@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:15
+    container_name: creverse_pg_local
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: creverse
+      POSTGRES_PASSWORD: creverse
+      POSTGRES_DB: creverse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - creverse-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: creverse_redis_local
+    ports:
+      - '6380:6379'
+    command: ['redis-server', '--requirepass', 'creverse']
+    networks:
+      - creverse-net
+
+volumes:
+  pgdata:
+
+networks:
+  creverse-net:

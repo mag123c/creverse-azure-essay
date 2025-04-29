@@ -4,7 +4,7 @@ import { PaginationMeta } from '@src/common/pagination/pagination.interface';
 import { PaginationMetaDto } from '@src/common/pagination/meta.dto';
 import { SubmissionStatus } from '../domain/submission';
 import { SubmissionsEntity } from '../entities/submissions.entity';
-import { RevisionDetailItem } from '@src/app/revisions/dto/revisions-response.dto';
+import { RevisionDetailItem, RevisionListItem } from '@src/app/revisions/dto/revisions-response.dto';
 
 export interface SubmissionList {
   id: number;
@@ -175,7 +175,7 @@ export class SubmissionDetailItem implements SubmissionDetail {
   readonly mediaUrl?: MediaItem;
 
   @ApiPropertyOptional({ description: '수동 재평가(REVISION) 정보', type: RevisionDetailItem, isArray: true })
-  readonly revisions?: RevisionDetailItem[];
+  readonly revisions?: RevisionListItem[];
 
   constructor(data: {
     id: number;
@@ -191,7 +191,7 @@ export class SubmissionDetailItem implements SubmissionDetail {
     highlights?: string[];
     highlightSubmitText?: string;
     mediaUrl?: MediaItem;
-    revisions?: RevisionDetailItem[];
+    revisions?: RevisionListItem[];
   }) {
     this.id = data.id;
     this.studentId = data.studentId;

@@ -9,7 +9,6 @@ import { StudentsModule } from './students/students.module';
 import { BlobStorageModule } from '@src/infra/azure/blob/blob.module';
 import { AuthModule } from './auth/auth.module';
 import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
-import { RevisionsQueueModule } from '@src/infra/queue/revisions/revision-queue.module';
 import { RevisionsModule } from './revisions/revisions.module';
 import { StatsModule } from './stats/stats.module';
 
@@ -26,7 +25,6 @@ import { StatsModule } from './stats/stats.module';
     BlobStorageModule,
     OpenAIModule,
     SubmissionQueueModule,
-    RevisionsQueueModule,
     StatsModule,
 
     // Domain

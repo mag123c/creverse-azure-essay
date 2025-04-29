@@ -5,7 +5,6 @@ import { StudentsModule } from '@src/app/students/students.module';
 import { SubmissionsModule } from '@src/app/submissions/submissions.module';
 import { RevisionsModule } from '@src/app/revisions/revisions.module';
 import { SubmissionQueueModule } from '@src/infra/queue/submissions/submission-queue.module';
-import { RevisionsQueueModule } from '@src/infra/queue/revisions/revision-queue.module';
 import { CustomDatabaseModule } from '@src/infra/database/database.module';
 import { AuthModule } from '@src/app/auth/auth.module';
 import { SubmissionsRepository } from '@src/app/submissions/repositories/submissions.repository';
@@ -46,7 +45,6 @@ describe('[e2e] Revisions', () => {
       SubmissionsModule,
       RevisionsModule,
       SubmissionQueueModule,
-      RevisionsQueueModule,
       CustomDatabaseModule,
       AuthModule,
     ]);
