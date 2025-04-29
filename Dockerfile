@@ -4,6 +4,8 @@ WORKDIR /app
 COPY . .
 
 RUN npm install
-RUN npm run build
 
-CMD ["npm", "run", "start:dev"]
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

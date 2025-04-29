@@ -8,6 +8,8 @@
 
 2. 실행
 
+- 마이그레이션 스크립트가 포함되어 있습니다 (entrypoint.sh)
+
 ```
 docker-compose up --build
 ```
